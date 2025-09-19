@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil do Médico</title>
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #adb5bd;
+            --background-color: #212529;
+            --surface-color: #2b3035;
+            --text-color: #dee2e6;
+            --text-color-muted: #adb5bd;
+            --border-color: #495057;
+            --green-coop: #198754;
+            --red-nocoop: #dc3545;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 20px; }
+        
+        /* --- MODIFICAÇÃO: Estilos da Barra de Pesquisa --- */
+        .search-wrapper {
+            max-width: 1200px;
+            margin: 0 auto 20px auto;
+            position: relative;
+        }
+        #doctor-search-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1.1em;
+            background-color: var(--surface-color);
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+        #search-results {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #343a40;
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .search-result-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        .search-result-item:hover {
+            background-color: var(--primary-color);
+            color: #fff;
+        }
+        .search-result-item small {
+            color: var(--text-color-muted);
+        }
+        .search-result-item:hover small {
+            color: #e0e0e0;
+        }
+        /* --- FIM DA MODIFICAÇÃO --- */
+        
+        .container { max-width: 1200px; margin: auto; background: var(--surface-color); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .loading, .error { text-align: center; padding: 40px; font-size: 1.2em; }
+        .profile-header { display: flex; align-items: center; gap: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 25px; flex-wrap: wrap; }
+        .profile-picture { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; background-color: #495057; }
+        .profile-info h1 { margin: 0; font-size: 2.2em; color: #fff; }
+        .profile-info h2 { margin: 5px 0 10px; font-size: 1.2em; color: var(--text-color-muted); font-weight: 400; }
+        .status-pill { display: inline-block; padding: 5px 12px; border-radius: 15px; font-size: 0.9em; font-weight: 600; color: #fff; }
+        .status-pill.cooperador { background-color: var(--green-coop); }
+        .status-pill.nao-cooperador { background-color: var(--red-nocoop); }
+        .status-pill.outro { background-color: var(--secondary-color); color: #000; }
+        .status-pill.none { background-color: #000; }
+        .tabs-container { display: flex; border-bottom: 1px solid var(--border-color); }
+        .tab-button { background: none; border: none; color: var(--text-color-muted); padding: 14px 20px; cursor: pointer; font-size: 1.1em; border-bottom: 3px solid transparent; }
+        .tab-button:hover { background-color: #343a40; }
+        .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
+        .tab-content { display: none; padding-top: 25px; }
+        .tab-content.active { display: block; }
+        .info-section { margin-bottom: 30px; }
+        .info-section h3 { color: #fff; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px; }
+        .info-grid { display: grid; grid-template-columns: 200px 1fr; gap: 10px 20px; }
+        .info-grid dt { font-weight: 600; color: var(--text-color-muted); }
+        .info-grid dd { margin: 0; }
+        .atividade-item { background-color: #343a40; padding: 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid var(--primary-color); }
+        .atividade-header { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px; }
+        .atividade-header .date { color: var(--text-color-muted); }
+        .atividade-body { white-space: pre-wrap; }
+        a { color: var(--primary-color); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .links-table { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 15px; }
+        .links-table th, .links-table td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .links-table th { background-color: #343a40; }
+        .links-table th:first-child { width: 75%; }
+        .links-table th:last-child { width: 25%; }
+        .links-table td:first-child { word-break: break-all; }
+
+        @media (max-width: 768px) {
+            .tabs-container { overflow-x: auto; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none; }
+            .tabs-container::-webkit-scrollbar { display: none; }
+            .tab-button { display: inline-block; flex-shrink: 0; }
+        }
+    </style>
+</head>
+<body>
+  
+  <!-- MODIFICAÇÃO: Barra de pesquisa adicionada -->
+  <div class="search-wrapper">
+    <input type="text" id="doctor-search-input" placeholder="Pesquisar médico por nome ou cédula...">
+    <div id="search-results"></div>
+  </div>
+
+  <div class="container" id="main-container">
+    <div class="loading">A carregar perfil do médico...</div>
+  </div>
+
+ <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
+      authDomain: "medical-5baa0.firebaseapp.com",
+      projectId: "medical-5baa0",
+      storageBucket: "medical-5baa0.appspot.com",
+      messagingSenderId: "900547659131",
+      appId: "1:900547659131:web:708f90f8fa1500d76569de"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const mainContainer = document.getElementById('main-container');
+    const silhouetteUrl = 'https://via.placeholder.com/100/495057/dee2e6?text=Foto'; 
+
+    let allDoctors = [];
+    const searchInput = document.getElementById('doctor-search-input');
+    const searchResultsContainer = document.getElementById('search-results');
+
+    async function initializeSearch() {
+        try {
+            const medicosSnap = await getDocs(collection(db, "medicos"));
+            allDoctors = medicosSnap.docs.map(doc => ({
+                id: doc.id,
+                nome: doc.data().nome || '',
+                nome_completo: doc.data().nome_completo || '',
+                cedula: doc.data().cedula || ''
+            }));
+        } catch (error) {
+            console.error("Erro ao inicializar a pesquisa de médicos:", error);
+        }
+    }
+
+    function handleSearchInput() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        if (searchTerm.length < 2) {
+            searchResultsContainer.style.display = 'none';
+            return;
+        }
+        const filteredDoctors = allDoctors.filter(doc => {
+            const nome = doc.nome.toLowerCase();
+            const nomeCompleto = doc.nome_completo.toLowerCase();
+            const cedula = doc.cedula.toString();
+            return nome.includes(searchTerm) || nomeCompleto.includes(searchTerm) || cedula.includes(searchTerm);
+        });
+        renderSearchResults(filteredDoctors);
+    }
+
+    function renderSearchResults(results) {
+        searchResultsContainer.innerHTML = '';
+        if (results.length === 0) {
+            searchResultsContainer.style.display = 'none';
+            return;
+        }
+        results.slice(0, 10).forEach(doc => {
+            const item = document.createElement('div');
+            item.className = 'search-result-item';
+            item.innerHTML = `${doc.nome} <small>(Cédula: ${doc.cedula || 'N/A'})</small>`;
+            item.addEventListener('click', () => {
+                window.location.href = `medico.html?id=${doc.id}`;
+            });
+            searchResultsContainer.appendChild(item);
+        });
+        searchResultsContainer.style.display = 'block';
+    }
+
+    function renderError(message) {
+        mainContainer.innerHTML = `<div class="error">${message}</div>`;
+    }
+
+    function formatDate(isoString) {
+        if (!isoString) return 'N/A';
+        try {
+            const date = new Date(isoString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        } catch (e) {
+            return isoString;
+        }
+    }
+
+    function setupTabs() {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === button.dataset.tab) {
+                        content.classList.add('active');
+                    }
+                });
+            });
+        });
+    }
+
+    async function loadDoctorProfile(doctorId) {
+      try {
+        const [ 
+            doctorSnap, 
+            especialidadesSnap,
+            atuacoesSnap, 
+            hospitaisSnap, 
+            servicosSnap, 
+            clhSnap 
+        ] = await Promise.all([
+            getDoc(doc(db, "medicos", doctorId)),
+            getDocs(collection(db, "especialidade")), 
+            getDocs(collection(db, "atuacoes")),
+            getDocs(collection(db, "hospitais")),
+            getDocs(collection(db, "servicos")),
+            getDocs(collection(db, "clh"))
+        ]);
+
+        if (!doctorSnap.exists()) {
+            renderError("Médico não encontrado.");
+            return;
+        }
+
+        const doctorData = doctorSnap.data();
+        const especialidadesMap = new Map(especialidadesSnap.docs.map(d => [d.id, d.data().nome]));
+        const atuacoesMap = new Map(atuacoesSnap.docs.map(d => [d.id, d.data()]));
+        const hospitaisMap = new Map(hospitaisSnap.docs.map(d => [d.id, d.data().nome]));
+        const servicosMap = new Map(servicosSnap.docs.map(d => [d.id, d.data().nome]));
+        const clhMap = new Map(clhSnap.docs.map(d => [d.id, d.data().nome]));
+
+        // CORREÇÃO 1: Passar o doctorId para a função de renderização.
+        renderPageStructure(doctorData, { especialidadesMap, atuacoesMap, hospitaisMap, servicosMap, clhMap }, doctorId);
+        setupTabs();
+
+      } catch (error) {
+        console.error("Erro ao carregar perfil do médico:", error);
+        renderError("Ocorreu um erro ao carregar os dados. Por favor, tente novamente.");
+      }
+    }
+
+    // CORREÇÃO 2: A função agora aceita doctorId.
+    function renderPageStructure(data, maps, doctorId) {
+        const especialidadesStr = (data.especialidade_ids || []).map(id => maps.especialidadesMap.get(id) || 'N/A').join(', ');
+        const cedulaStr = data.cedula ? ` | Cédula: ${data.cedula}` : '';
+
+        let statusClass = 'none';
+        let statusText = data.cooperador_situacao || '-';
+        if (statusText === 'Cooperador') statusClass = 'cooperador';
+        else if (statusText === 'Não Cooperador') statusClass = 'nao-cooperador';
+        else if (statusText !== '-') statusClass = 'outro';
+
+        const headerHtml = `
+            <div class="profile-header">
+                <img src="${data.imagem_url || silhouetteUrl}" alt="Foto de ${data.nome}" class="profile-picture" onerror="this.onerror=null;this.src='${silhouetteUrl}';">
+                <div class="profile-info">
+                    <h1>${data.nome || 'Nome Indisponível'}</h1>
+                    <h2>${especialidadesStr}${cedulaStr}</h2>
+                    <span class="status-pill ${statusClass}">${statusText}</span>
+                </div>
+            </div>`;
+
+        const atividadeHtml = renderAtividadeCLH(data, maps);
+        const infoHtml = renderInfoPessoais(data, maps);
+
+        const contentHtml = `
+            <div class="tabs-container">
+                <button class="tab-button active" data-tab="atividade">Atividade CLH</button>
+                <button class="tab-button" data-tab="leads">Leads Pendentes</button>
+                <button class="tab-button" data-tab="cirurgias">Interv. Cirúrgicas</button>
+                <button class="tab-button" data-tab="info">Informações Pessoais</button>
+                <a href="master.html?edit=medico_acao&id=${doctorId}" class="tab-button" style="margin-left: auto;">Editar</a>
+            </div>
+            <div class="tab-content active" id="atividade">${atividadeHtml}</div>
+            <div class="tab-content" id="leads"><div class="info-section"><h3>A implementar...</h3></div></div>
+            <div class="tab-content" id="cirurgias"><div class="info-section"><h3>A implementar...</h3></div></div>
+            <div class="tab-content" id="info">${infoHtml}</div>`;
+
+        mainContainer.innerHTML = headerHtml + contentHtml;
+    }
+
+    function renderAtividadeCLH(data, maps) {
+        const atuacoesIds = data.atuacoes_ids || [];
+        if (atuacoesIds.length === 0) return '<p>Nenhuma atividade CLH registada.</p>';
+        const atuacoes = atuacoesIds.map(id => maps.atuacoesMap.get(id)).filter(Boolean).sort((a, b) => new Date(b.data) - new Date(a.data));
+        return atuacoes.map(at => `
+            <div class="atividade-item">
+                <div class="atividade-header">
+                    <span>${at.tipo || 'Tipo não definido'}</span>
+                    <span class="date">${formatDate(at.data) || 'Data não definida'}</span>
+                </div>
+                <div class="atividade-body">
+                    <p>${at.observacoes || 'Sem observações.'}</p>
+                    <small><b>Ordem:</b> ${at.ordem || 'N/A'} | <b>Qtd. Médicos:</b> ${at.quantidade || 'N/A'}</small>
+                </div>
+            </div>`).join('');
+    }
+
+    function renderInfoPessoais(data, maps) {
+        const na = '<span style="color: var(--text-color-muted);">N/A</span>';
+        const especialidadesStr = (data.especialidade_ids || []).map(id => maps.especialidadesMap.get(id) || 'N/A').join(', ') || na;
+        const subEspecialidadesStr = (data.sub_especialidade_ids || []).map(id => maps.especialidadesMap.get(id) || 'N/A').join(', ') || na;
+        const posicoesHtml = (data.posicoes || []).map(p => {
+            const horarioStr = p.horario && typeof p.horario === 'object' ? `${p.horario.dia || ''} - ${p.horario.parte || ''}` : (p.horario || na);
+            return `<dt>${maps.hospitaisMap.get(p.hospital_id) || 'Hospital desconhecido'}</dt><dd><b>Cargo:</b> ${p.cargo || na}<br><b>Serviço:</b> ${maps.servicosMap.get(p.servico_id) || na}<br><b>Horário:</b> ${horarioStr}</dd>`;
+        }).join('') || `<dt>Nenhuma</dt><dd></dd>`;
+        const linksHtml = (data.links || []).sort((a, b) => new Date(b.data_adicionado) - new Date(a.data_adicionado)).map(link => `<tr><td><a href="${link.url}" target="_blank" rel="noopener noreferrer">${link.url}</a></td><td>${formatDate(link.data_adicionado)}</td></tr>`).join('');
+        return `<div class="info-section"><h3>Informações Gerais</h3><dl class="info-grid"><dt>Nome Completo</dt><dd>${data.nome_completo || data.nome || na}</dd><dt>Cédula Profissional</dt><dd>${data.cedula || na}</dd><dt>Email(s)</dt><dd>${(data.emails || []).join(', ') || na}</dd><dt>Telemóveis</dt><dd>${(data.telemoveis || []).join(', ') || na}</dd><dt>Morada</dt><dd>${data.morada || na}</dd></dl></div><div class="info-section"><h3>Informações Profissionais</h3><dl class="info-grid"><dt>Especialidade(s)</dt><dd>${especialidadesStr}</dd><dt>Sub-especialidade(s)</dt><dd>${subEspecialidadesStr}</dd></dl></div><div class="info-section"><h3>Hospitais e Serviços</h3><dl class="info-grid">${posicoesHtml}</dl></div><div class="info-section"><h3>Estado</h3><dl class="info-grid"><dt>Situação Consultor</dt><dd>${data.consultor_situacao || na}</dd><dt>Situação Cooperador</dt><dd>${data.cooperador_situacao || na}</dd><dt>CLH</dt><dd>${maps.clhMap.get(data.clh_id) || na}</dd><dt>Classificação</dt><dd>${data.classificacao || na}</dd><dt>Recebe Mailings DIH</dt><dd>${data.recebe_mailings_dih ? 'Sim' : 'Não'}</dd><dt>Responsabilidade Mailing</dt><dd>${data.responsabilidade_clh_mailing || na}</dd></dl></div><div class="info-section"><h3>Links</h3>${linksHtml ? `<table class="links-table"><thead><tr><th>URL</th><th>Data Adicionado</th></tr></thead><tbody>${linksHtml}</tbody></table>` : '<p>Nenhum link registado.</p>'}</div>`;
+    }
+
+    // --- Ponto de Entrada ---
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeSearch();
+        searchInput.addEventListener('input', handleSearchInput);
+        window.addEventListener('click', (e) => {
+            if (!searchResultsContainer.contains(e.target) && e.target !== searchInput) {
+                searchResultsContainer.style.display = 'none';
+            }
+        });
+        const params = new URLSearchParams(window.location.search);
+        const doctorId = params.get('id');
+        if (!doctorId) {
+            renderError("ID do médico não fornecido na URL.");
+            mainContainer.style.display = 'none';
+            return;
+        }
+        loadDoctorProfile(doctorId);
+    });
+</script>
+</body>
+</html> 
