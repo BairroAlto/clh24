@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil do Membro</title>
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #adb5bd;
+            --background-color: #212529;
+            --surface-color: #2b3035;
+            --text-color: #dee2e6;
+            --text-color-muted: #adb5bd;
+            --border-color: #495057;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 20px; }
+        .search-wrapper { max-width: 1200px; margin: 0 auto 20px auto; position: relative; }
+        #member-search-input { width: 100%; padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1.1em; background-color: var(--surface-color); color: var(--text-color); box-sizing: border-box; }
+        #search-results { display: none; position: absolute; top: 100%; left: 0; right: 0; background-color: #343a40; border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 6px 6px; z-index: 1000; max-height: 300px; overflow-y: auto; }
+        .search-result-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid var(--border-color); }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { background-color: var(--primary-color); color: #fff; }
+        .search-result-item small { color: var(--text-color-muted); }
+        .search-result-item:hover small { color: #e0e0e0; }
+        .container { max-width: 1200px; margin: auto; background: var(--surface-color); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .loading, .error { text-align: center; padding: 40px; font-size: 1.2em; }
+        .profile-header { display: flex; align-items: center; gap: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 25px; flex-wrap: wrap; }
+        .profile-picture { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; background-color: #495057; }
+        .profile-info h1 { margin: 0; font-size: 2.2em; color: #fff; }
+        .profile-info h2 { margin: 5px 0 10px; font-size: 1.2em; color: var(--text-color-muted); font-weight: 400; text-transform: capitalize; }
+        .tabs-container { display: flex; border-bottom: 1px solid var(--border-color); }
+        .tab-button { background: none; border: none; color: var(--text-color-muted); padding: 14px 20px; cursor: pointer; font-size: 1.1em; border-bottom: 3px solid transparent; }
+        .tab-button:hover { background-color: #343a40; }
+        .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
+        .tab-content { display: none; padding-top: 25px; }
+        .tab-content.active { display: block; }
+        .info-section { margin-bottom: 30px; }
+        .info-section h3 { color: #fff; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px; }
+        .info-grid { display: grid; grid-template-columns: 200px 1fr; gap: 10px 20px; }
+        .info-grid dt { font-weight: 600; color: var(--text-color-muted); }
+        .info-grid dd { margin: 0; }
+        .atividade-item { background-color: #343a40; padding: 15px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid var(--primary-color); }
+        .atividade-header { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px; }
+        .atividade-header .date { color: var(--text-color-muted); }
+        a { color: var(--primary-color); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        @media (max-width: 768px) {
+            .tabs-container { overflow-x: auto; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none; }
+            .tabs-container::-webkit-scrollbar { display: none; }
+            .tab-button { display: inline-block; flex-shrink: 0; }
+        }
+    </style>
+</head>
+<body>
+  
+  <div class="search-wrapper">
+    <input type="text" id="member-search-input" placeholder="Pesquisar membro por nome...">
+    <div id="search-results"></div>
+  </div>
+
+  <div class="container" id="main-container">
+    <div class="loading">A carregar perfil do membro...</div>
+  </div>
+
+ <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
+      authDomain: "medical-5baa0.firebaseapp.com",
+      projectId: "medical-5baa0",
+      storageBucket: "medical-5baa0.appspot.com",
+      messagingSenderId: "900547659131",
+      appId: "1:900547659131:web:708f90f8fa1500d76569de"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const mainContainer = document.getElementById('main-container');
+    const silhouetteUrl = 'https://via.placeholder.com/100/495057/dee2e6?text=Foto'; 
+
+    let allMembers = [];
+    const searchInput = document.getElementById('member-search-input');
+    const searchResultsContainer = document.getElementById('search-results');
+
+    async function initializeSearch() {
+        try {
+            const membrosSnap = await getDocs(collection(db, "membrosclh"));
+            allMembers = membrosSnap.docs.map(doc => ({
+                id: doc.id,
+                nome: doc.data().nome || '',
+                nome_completo: doc.data().nome_completo || ''
+            }));
+        } catch (error) {
+            console.error("Erro ao inicializar a pesquisa de membros:", error);
+        }
+    }
+
+    function handleSearchInput() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        if (searchTerm.length < 2) {
+            searchResultsContainer.style.display = 'none';
+            return;
+        }
+        const filteredMembers = allMembers.filter(doc => {
+            const nome = doc.nome.toLowerCase();
+            const nomeCompleto = doc.nome_completo.toLowerCase();
+            return nome.includes(searchTerm) || nomeCompleto.includes(searchTerm);
+        });
+        renderSearchResults(filteredMembers);
+    }
+
+    function renderSearchResults(results) {
+        searchResultsContainer.innerHTML = '';
+        if (results.length === 0) {
+            searchResultsContainer.style.display = 'none';
+            return;
+        }
+        results.slice(0, 10).forEach(doc => {
+            const item = document.createElement('div');
+            item.className = 'search-result-item';
+            item.innerHTML = `${doc.nome} <small>(${doc.nome_completo})</small>`;
+            item.addEventListener('click', () => {
+                window.location.href = `membro.html?id=${doc.id}`;
+            });
+            searchResultsContainer.appendChild(item);
+        });
+        searchResultsContainer.style.display = 'block';
+    }
+
+    function renderError(message) {
+        mainContainer.innerHTML = `<div class="error">${message}</div>`;
+    }
+
+    function formatDate(isoString) {
+        if (!isoString) return 'N/A';
+        try {
+            const date = new Date(isoString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        } catch (e) { return isoString; }
+    }
+
+    function setupTabs() {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                tabContents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === button.dataset.tab) {
+                        content.classList.add('active');
+                    }
+                });
+            });
+        });
+    }
+
+    async function loadMemberProfile(memberId) {
+      try {
+        const [ 
+            memberSnap, 
+            congregacoesSnap,
+            hospitaisSnap,
+            atuacoesSnap,
+            leadsSnap
+        ] = await Promise.all([
+            getDoc(doc(db, "membrosclh", memberId)),
+            getDocs(collection(db, "congregacoes")), 
+            getDocs(collection(db, "hospitais")),
+            getDocs(collection(db, "atuacoes")),
+            getDocs(collection(db, "leads"))
+        ]);
+
+        if (!memberSnap.exists()) {
+            renderError("Membro não encontrado.");
+            return;
+        }
+
+        const memberData = memberSnap.data();
+        const congregacoesMap = new Map(congregacoesSnap.docs.map(d => [d.id, d.data().nome]));
+        const hospitaisMap = new Map(hospitaisSnap.docs.map(d => [d.id, d.data().nome]));
+        const atuacoesMap = new Map(atuacoesSnap.docs.map(d => [d.id, d.data()]));
+        const leadsMap = new Map(leadsSnap.docs.map(d => [d.id, d.data()]));
+
+        renderPageStructure(memberData, { congregacoesMap, hospitaisMap, atuacoesMap, leadsMap }, memberId);
+        setupTabs();
+
+      } catch (error) {
+        console.error("Erro ao carregar perfil do membro:", error);
+        renderError("Ocorreu um erro ao carregar os dados. Por favor, tente novamente.");
+      }
+    }
+
+    function renderPageStructure(data, maps, memberId) {
+        const primaryGroup = data.grupos && data.grupos.length > 0 ? data.grupos[0].tipo : 'N/A';
+        const congregacao = maps.congregacoesMap.get(data.congregacao_id) || 'N/A';
+        const genero = data.genero || 'N/A';
+        const subtitle = `${primaryGroup} | ${congregacao} | ${genero}`;
+
+        const headerHtml = `
+            <div class="profile-header">
+                <img src="${data.foto_url || silhouetteUrl}" alt="Foto de ${data.nome}" class="profile-picture" onerror="this.onerror=null;this.src='${silhouetteUrl}';">
+                <div class="profile-info">
+                    <h1>${data.nome || 'Nome Indisponível'}</h1>
+                    <h2>${subtitle}</h2>
+                </div>
+            </div>`;
+
+        const atividadeHtml = renderAtividades(data.atuacoes_ids || [], maps.atuacoesMap, 'Nenhuma atividade CLH registada.');
+        const leadsHtml = renderAtividades(data.leads_ids || [], maps.leadsMap, 'Nenhuma lead pendente registada.');
+        const infoHtml = renderInfoPessoais(data, maps);
+
+        const contentHtml = `
+            <div class="tabs-container">
+                <button class="tab-button active" data-tab="atividade">Atividade CLH</button>
+                <button class="tab-button" data-tab="leads">Leads Pendentes</button>
+                <button class="tab-button" data-tab="info">Informações Pessoais</button>
+                <a href="master.html?edit=membro&id=${memberId}" class="tab-button" style="margin-left: auto;">Editar</a>
+            </div>
+            <div class="tab-content active" id="atividade">${atividadeHtml}</div>
+            <div class="tab-content" id="leads">${leadsHtml}</div>
+            <div class="tab-content" id="info">${infoHtml}</div>`;
+
+        mainContainer.innerHTML = headerHtml + contentHtml;
+    }
+
+    function renderAtividades(ids, dataMap, emptyMessage) {
+        if (ids.length === 0) return `<p>${emptyMessage}</p>`;
+        
+        const items = ids.map(id => dataMap.get(id)).filter(Boolean).sort((a, b) => new Date(b.data) - new Date(a.data));
+        
+        if (items.length === 0) return `<p>${emptyMessage}</p>`;
+
+        return items.map(item => `
+            <div class="atividade-item">
+                <div class="atividade-header">
+                    <span>${item.tipo || 'Tipo não definido'}</span>
+                    <span class="date">${formatDate(item.data) || 'Data não definida'}</span>
+                </div>
+                <div class="atividade-body">
+                    <p>${item.observacoes || item.descricao || 'Sem detalhes.'}</p>
+                </div>
+            </div>`).join('');
+    }
+
+    function renderInfoPessoais(data, maps) {
+        const na = '<span style="color: var(--text-color-muted);">N/A</span>';
+        
+        const congregacaoStr = maps.congregacoesMap.get(data.congregacao_id) || na;
+        
+        const hospitaisHtml = (data.hospitais_responsabilidade_ids || [])
+            .map(id => `<li>${maps.hospitaisMap.get(id) || 'Hospital desconhecido'}</li>`)
+            .join('') || `<li>${na}</li>`;
+
+        const gruposHtml = (data.grupos || [])
+            .map(g => `<dt>${g.tipo || 'Grupo'}</dt><dd><b>Entrada:</b> ${formatDate(g.data_entrada) || na}<br><b>Saída:</b> ${formatDate(g.data_saida) || na}</dd>`)
+            .join('') || `<dt>Nenhum</dt><dd></dd>`;
+
+        return `
+            <div class="info-section">
+                <h3>Informações Pessoais</h3>
+                <dl class="info-grid">
+                    <dt>Nome Completo</dt><dd>${data.nome_completo || na}</dd>
+                    <dt>Congregação</dt><dd>${congregacaoStr}</dd>
+                    <dt>Email(s)</dt><dd>${(data.emails || []).join(', ') || na}</dd>
+                    <dt>Telemóveis</dt><dd>${(data.telemoveis || []).join(', ') || na}</dd>
+                    <dt>Morada</dt><dd>${data.morada || na}</dd>
+                </dl>
+            </div>
+            <div class="info-section">
+                <h3>Hospitais de Responsabilidade</h3>
+                <ul>${hospitaisHtml}</ul>
+            </div>
+            <div class="info-section">
+                <h3>Estado</h3>
+                <dl class="info-grid">
+                    <dt>Ativo</dt><dd>${data.ativo ? 'Sim' : 'Não'}</dd>
+                    ${gruposHtml}
+                    <dt>Cartão AER</dt><dd>${data.cartao_aer || na}</dd>
+                    <dt>Recebe Mailings DIH</dt><dd>${data.recebe_mailings_dih ? 'Sim' : 'Não'}</dd>
+                </dl>
+            </div>
+        `;
+    }
+
+    // --- Ponto de Entrada ---
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeSearch();
+        searchInput.addEventListener('input', handleSearchInput);
+        window.addEventListener('click', (e) => {
+            if (!searchResultsContainer.contains(e.target) && e.target !== searchInput) {
+                searchResultsContainer.style.display = 'none';
+            }
+        });
+        const params = new URLSearchParams(window.location.search);
+        const memberId = params.get('id');
+        if (!memberId) {
+            renderError("ID do membro não fornecido na URL.");
+            mainContainer.style.display = 'none';
+            return;
+        }
+        loadMemberProfile(memberId);
+    });
+</script>
+</body>
+</html>
