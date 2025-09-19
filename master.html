@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma de Edição Médica</title>
+<style>
+    /* --- TEMA ESCURO E GERAL --- */
+    :root {
+        --primary-color: #0d6efd;
+        --secondary-color: #adb5bd;
+        --background-color: #212529;
+        --surface-color: #2b3035;
+        --text-color: #dee2e6;
+        --text-muted: #8d96a0;
+        --border-color: #495057;
+        --green-accent: #198754;
+        --green-hover: #157347;
+        --red-accent: #dc3545;
+        --red-hover: #bb2d3b;
+        --yellow-accent: #ffc107;
+        --yellow-hover: #d39e00;
+    }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--background-color);
+        color: var(--text-color);
+        margin: 0;
+        padding: 20px;
+    }
+    .container {
+        max-width: 1200px;
+        margin: auto;
+        background: var(--surface-color);
+        padding: 25px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+    h1, h2, h3 {
+        color: #fff;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 10px;
+    }
+    h2 { margin-top: 0; }
+    h3 { margin-top: 30px; font-size: 1.2em; color: var(--primary-color); }
+
+    /* --- ESTILOS DAS ABAS E MODO DE EDIÇÃO --- */
+    .tabs { display: flex; flex-wrap: wrap; border-bottom: 2px solid var(--border-color); margin-bottom: 20px; }
+    .tab-link {
+        transition: all 0.3s ease;
+        padding: 10px 15px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        font-size: 1em;
+        color: var(--secondary-color);
+        border-bottom: 3px solid transparent;
+        margin-bottom: -2px;
+    }
+    .tab-link.active { color: #fff; font-weight: bold; border-bottom-color: var(--primary-color); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .sub-tabs { margin-left: 20px; border: none; }
+    .edit-mode .tabs .tab-link:not(.active):not(.unlocked),
+.action-edit-mode .tabs .tab-link.locked {
+    opacity: 0.2;
+    pointer-events: none;
+}
+    .edit-mode .tabs .tab-link.active {
+        background-color: var(--primary-color);
+        color: white;
+        border-radius: 5px 5px 0 0;
+        border-bottom-color: transparent;
+    }
+    
+    /* --- ESTILOS: LISTA DE EDIÇÃO (TOGGLE LIST) --- */
+    .edit-list-container {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 30px;
+    }
+    .toggle-list {
+        max-height: 300px;
+        overflow-y: auto;
+        border-top: 1px solid var(--border-color);
+        margin-top: 10px;
+        padding-top: 10px;
+    }
+    .toggle-list-item {
+        padding: 12px 15px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        background-color: #343a40;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        border-left: 4px solid transparent;
+    }
+    .toggle-list-item:hover { background-color: #3c4248; border-left-color: var(--secondary-color); }
+    .toggle-list-item.active { background-color: var(--primary-color); color: white; border-left-color: var(--yellow-accent); }
+    .toggle-list-item strong { display: block; margin-bottom: 5px; }
+    .toggle-list-item p {
+        margin: 0;
+        font-size: 0.9em;
+        color: var(--text-muted);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .toggle-list-item.active p { color: #e0e0e0; }
+
+    /* --- ESTILOS DOS FORMULÁRIOS --- */
+    form { display: flex; flex-direction: column; gap: 25px; }
+    fieldset {
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 20px;
+    }
+    legend { font-weight: bold; color: var(--primary-color); padding: 0 10px; font-size: 1.1em; }
+    .form-row {
+        display: grid;
+        gap: 20px;
+    }
+    .cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .form-group { display: flex; flex-direction: column; }
+    label { margin-bottom: 8px; font-weight: 600; color: var(--secondary-color); }
+    input, select, textarea {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        font-size: 1em;
+        background-color: var(--background-color);
+        color: var(--text-color);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+    }
+
+    /* --- ESTILOS DOS COMPONENTES DE PESQUISA --- */
+    .searchable-select-container { position: relative; width: 100%; }
+    .searchable-select-input { width: 100%; }
+    .searchable-select-dropdown {
+        display: none; position: absolute; background-color: var(--surface-color); border: 1px solid var(--border-color);
+        border-top: none; z-index: 1001; width: 100%; max-height: 200px; overflow-y: auto; border-radius: 0 0 4px 4px;
+    }
+    .searchable-select-dropdown .dropdown-item { padding: 10px; cursor: pointer; }
+    .searchable-select-dropdown .dropdown-item:hover { background-color: var(--primary-color); color: white; }
+
+    .multi-search-select-container { position: relative; width: 100%; }
+    .multi-search-select-input-wrapper { display: flex; flex-wrap: wrap; gap: 6px; padding: 5px; border: 1px solid var(--border-color); border-radius: 4px; background-color: var(--background-color); min-height: 40px; cursor: text; }
+    .multi-search-select-pill { display: flex; align-items: center; background-color: var(--primary-color); color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.9em; }
+    .multi-search-select-pill .remove-pill { margin-left: 8px; cursor: pointer; font-weight: bold; }
+    .multi-search-select-input { flex-grow: 1; border: none; background: none; color: var(--text-color); padding: 5px; min-width: 150px; font-size: 1em; }
+    .multi-search-select-input:focus { outline: none; }
+    .multi-search-select-dropdown { display: none; position: absolute; background-color: var(--surface-color); border: 1px solid var(--border-color); border-top: none; z-index: 1001; width: 100%; max-height: 200px; overflow-y: auto; border-radius: 0 0 4px 4px; }
+    .multi-search-select-item { position: relative; display: flex; align-items: center; padding: 10px; cursor: pointer; justify-content: flex-start; }
+    .multi-search-select-item label { margin-bottom: 0; cursor: pointer; flex-grow: 1; padding-left: 30px; position: relative; user-select: none; }
+    .multi-search-select-item input[type="checkbox"] { position: absolute; opacity: 0; cursor: pointer; height: 0; width: 0; }
+    .multi-search-select-item label::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 16px; width: 16px; background-color: var(--background-color); border: 2px solid var(--secondary-color); border-radius: 3px; transition: all 0.2s; }
+    .multi-search-select-item:hover { background-color: var(--primary-color); color: white; }
+    .multi-search-select-item:hover label::before { border-color: white; }
+    .multi-search-select-item input[type="checkbox"]:checked + label::before { background-color: var(--primary-color); border-color: var(--primary-color); }
+    .multi-search-select-item label::after { content: ''; position: absolute; display: none; left: 6px; top: 3px; width: 5px; height: 10px; border: solid white; border-width: 0 3px 3px 0; transform: rotate(45deg); }
+    .multi-search-select-item input[type="checkbox"]:checked + label::after { display: block; }
+
+    /* --- BOTÕES E OUTROS --- */
+    .form-actions { display: flex; gap: 10px; align-items: center; }
+    .dynamic-list .input-group { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+    .dynamic-list .input-group > * { flex-grow: 1; }
+    .dynamic-list .input-group > .btn { flex-grow: 0; }
+    .btn { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; font-weight: 600; transition: background-color 0.2s; }
+    .btn-add { background-color: var(--border-color); color: var(--text-color); }
+    .btn-add:hover { background-color: #3A4045; }
+    .btn-remove { background-color: var(--red-accent); color: white; }
+    .btn-remove:hover { background-color: var(--red-hover); }
+    .btn-submit { background-color: var(--primary-color); color: white; font-size: 1.2em; padding: 12px; }
+    .btn-submit:hover { background-color: #0b5ed7; }
+    .btn-cancel { background-color: var(--secondary-color); color: var(--background-color); }
+    .btn-cancel:hover { background-color: #98a1a9; }
+    .btn-sm { padding: 6px 12px; font-size: 0.9em; align-self: flex-start; margin-top: 10px; }
+    .hidden-template { display: none; }
+    
+    /* ADIÇÃO: Classe para esconder elementos */
+    .hidden { display: none !important; }
+
+    /* RESPONSIVIDADE */
+    @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } }
+</style>
+
+</head>
+
+
+<body>
+
+    <div class="container">
+        <h1>Plataforma de Edição</h1>
+
+        <nav class="tabs">
+            <button class="tab-link active" data-tab="hospitais">Hospitais</button>
+            <button class="tab-link" data-tab="membros">Membros CLH</button>
+            <button class="tab-link" data-tab="medicos">Médicos</button>
+            <button class="tab-link" data-tab="servicos">Serviços</button>
+            <button class="tab-link" data-tab="clh">CLH</button>
+            <button class="tab-link" data-tab="congregacoes">Congregações</button>
+            <button class="tab-link" data-tab="especialidades">Especialidades</button>
+            <button class="tab-link" data-tab="acao">Ação</button>
+        </nav>
+
+     <!-- ABA HOSPITAIS -->
+<div id="tab-hospitais" class="tab-content active">
+    <h2>Criar Novo Hospital</h2>
+    <form id="form-hospital">
+        <fieldset>
+            <legend>Informação Principal</legend>
+            <div class="form-row cols-3">
+                <div class="form-group"><label for="h-nome">Nome do Hospital</label><input type="text" id="h-nome" required></div>
+                <div class="form-group"><label for="h-morada">Morada</label><input type="text" id="h-morada"></div>
+                <div class="form-group"><label for="h-cidade">Cidade</label><input type="text" id="h-cidade"></div>
+                <div class="form-group"><label for="h-cp">Código Postal</label><input type="text" id="h-cp"></div>
+                <div class="form-group"><label for="h-contacto">Contacto Geral</label><input type="tel" id="h-contacto"></div>
+                <div class="form-group"><label for="h-fax">Fax Geral</label><input type="tel" id="h-fax"></div>
+                <div class="form-group"><label for="h-email">Email Geral</label><input type="email" id="h-email"></div>
+                <div class="form-group"><label for="h-site">Site</label><input type="url" id="h-site"></div>
+                <div class="form-group">
+                    <label for="h-responsaveis-search">Responsáveis (Membros)</label>
+                    <div id="h-responsaveis-container" class="multi-search-select-container">
+                        <div class="multi-search-select-input-wrapper">
+                            <input type="text" id="h-responsaveis-search" class="multi-search-select-input" placeholder="Pesquisar membro...">
+                        </div>
+                        <div class="multi-search-select-dropdown"></div>
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+        <fieldset>
+            <legend>Serviços e Convenções</legend>
+            <div class="form-row cols-2">
+                <div class="form-group">
+                    <label for="h-servicos-search">Serviços</label>
+                    <div id="h-servicos-container" class="multi-search-select-container">
+                        <div class="multi-search-select-input-wrapper">
+                            <input type="text" id="h-servicos-search" class="multi-search-select-input" placeholder="Pesquisar serviço...">
+                        </div>
+                        <div class="multi-search-select-dropdown"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Convenções</label>
+                    <div id="h-convencoes-list" class="dynamic-list"></div>
+                    <button type="button" class="btn btn-add btn-sm" onclick="addDynamicInput('h-convencoes-list', 'text', 'Nome da Convenção')">Adicionar</button>
+                </div>
+            </div>
+        </fieldset>
+        <fieldset>
+            <legend>Detalhes Adicionais</legend>
+            <div class="form-row cols-3">
+                <div class="form-group"><label for="h-uls">É ULS/Centro Hospitalar?</label><select id="h-uls"><option value="" selected>Selecione...</option><option value="sim">Sim</option><option value="nao">Não</option></select></div>
+                <div class="form-group"><label for="h-publico">Público?</label><select id="h-publico"><option value="" selected>Selecione...</option><option value="sim">Sim</option><option value="nao">Não</option></select></div>
+                <div class="form-group"><label for="h-privado">Privado?</label><select id="h-privado"><option value="" selected>Selecione...</option><option value="sim">Sim</option><option value="nao">Não</option></select></div>
+                <div class="form-group"><label for="h-universitario">Universitário?</label><select id="h-universitario"><option value="" selected>Selecione...</option><option value="sim">Sim</option><option value="nao">Não</option></select></div>
+                <div class="form-group"><label for="h-pediatrico">Pediátrico?</label><select id="h-pediatrico"><option value="" selected>Selecione...</option><option value="sim">Sim</option><option value="nao">Não</option></select></div>
+                <div class="form-group"><label for="h-consultorio">Consultório?</label><select id="h-consultorio"><option value="" selected>Selecione...</option><option value="sim">Sim</option><option value="nao">Não</option></select></div>
+                <div class="form-group"><label for="h-ativo">Ativo?</label><select id="h-ativo"><option value="" selected>Selecione...</option><option value="sim">Sim</option><option value="nao">Não</option></select></div>
+                <div class="form-group"><label for="h-trauma-adulto">Trauma Adulto Nível</label><select id="h-trauma-adulto"><option>S/Trauma Adulto</option><option>I</option><option>II</option><option>III</option><option>IV</option><option>V</option></select></div>
+                <div class="form-group"><label for="h-trauma-pediatrico">Trauma Pediátrico Nível</label><select id="h-trauma-pediatrico"><option>S/Trauma Pediatrico</option><option>I</option><option>II</option><option>III</option><option>IV</option><option>V</option></select></div>
+                <div class="form-group"><label for="h-sigla">Sigla</label><input type="text" id="h-sigla"></div>
+                <div class="form-group"><label for="h-pasta">Nome Pasta Arquivo</label><input type="text" id="h-pasta"></div>
+                <div class="form-group">
+                    <label for="h-clh-search-input">CLH</label>
+                    <div id="h-clh-searchable-container" class="searchable-select-container">
+                        <input type="text" id="h-clh-search-input" class="searchable-select-input" placeholder="Pesquisar CLH..." autocomplete="off">
+                        <input type="hidden" id="h-clh-value" class="searchable-select-value">
+                        <div class="searchable-select-dropdown"></div>
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+        <fieldset>
+            <legend>Notas</legend>
+            <div id="h-notas-list" class="dynamic-list"></div>
+            <button type="button" class="btn btn-add" onclick="addDynamicInput('h-notas-list', 'textarea', 'Escreva uma nota...')">Adicionar Nota</button>
+        </fieldset>
+        <button type="submit" class="btn btn-submit">Guardar Hospital</button>
+    </form>
+</div>
+
+     <!-- ABA MEMBROS -->
+<div id="tab-membros" class="tab-content">
+    <h2>Criar Novo Membro CLH</h2>
+    <form id="form-membro">
+        <fieldset>
+            <legend>Identificação</legend>
+            <div class="form-row cols-3">
+                <div class="form-group"><label for="m-nome">Nome</label><input type="text" id="m-nome" required></div>
+                <div class="form-group"><label for="m-nome-completo">Nome Completo (Opcional)</label><input type="text" id="m-nome-completo"></div>
+                <div class="form-group"><label for="m-genero">Género</label><select id="m-genero"><option value="masculino">Masculino</option><option value="feminino">Feminino</option></select></div>
+            </div>
+            <div class="form-group" style="margin-top: 20px;"><label for="m-congregacao">Congregação</label><select id="m-congregacao"><option>A carregar...</option></select></div>
+        </fieldset>
+        <fieldset>
+            <legend>Afiliação e Responsabilidades</legend>
+            <div class="form-row cols-2">
+                <div class="form-group"><label for="m-ativo">Ativo?</label><select id="m-ativo"><option value="" selected>Selecione...</option><option value="sim">Sim</option><option value="nao">Não</option></select></div>
+                <div class="form-group">
+                    <label for="m-hospitais-search">Hospitais de Responsabilidade</label>
+                    <div id="m-hospitais-container" class="multi-search-select-container">
+                        <div class="multi-search-select-input-wrapper">
+                            <input type="text" id="m-hospitais-search" class="multi-search-select-input" placeholder="Pesquisar hospital...">
+                        </div>
+                        <div class="multi-search-select-dropdown"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group" style="margin-top: 20px;">
+                <label>Grupos</label>
+                <div id="m-grupos-list" class="dynamic-list">
+                    <!-- Grupos serão adicionados dinamicamente aqui -->
+                </div>
+                <button type="button" class="btn btn-add btn-sm" onclick="addGrupoInput()">Adicionar Grupo</button>
+            </div>
+        </fieldset>
+        <fieldset>
+            <legend>Contactos e Detalhes Pessoais</legend>
+            <div class="form-group"><label for="m-morada">Morada</label><input type="text" id="m-morada"></div>
+             <div class="form-row cols-2" style="margin-top: 20px;">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" class="initial-input" placeholder="exemplo@email.com">
+                    <div id="m-emails-list" class="dynamic-list" style="margin-top:10px"></div>
+                    <button type="button" class="btn btn-add btn-sm" onclick="addDynamicInput('m-emails-list', 'email', 'exemplo@email.com')">Adicionar Outro</button>
+                </div>
+                <div class="form-group">
+                    <label>Telemóvel</label>
+                    <input type="tel" class="initial-input" placeholder="912345678">
+                    <div id="m-telemoveis-list" class="dynamic-list" style="margin-top:10px"></div>
+                    <button type="button" class="btn btn-add btn-sm" onclick="addDynamicInput('m-telemoveis-list', 'tel', '912345678')">Adicionar Outro</button>
+                </div>
+            </div>
+            <div class="form-row cols-3" style="margin-top: 20px;">
+                <div class="form-group"><label for="m-foto-link">Fotografia (URL)</label><input type="url" id="m-foto-link"></div>
+                <div class="form-group"><label for="m-cartao-aer">Cartão AER</label><select id="m-cartao-aer"><option>Não</option><option>Pedido</option><option>Sim</option><option>Devolvido</option></select></div>
+                <div class="form-group"><label for="m-mailings">Recebe Mailings DIH?</label><select id="m-mailings"><option value="" selected>Selecione...</option><option value="sim">Sim</option><option value="nao">Não</option></select></div>
+            </div>
+        </fieldset>
+        <button type="submit" class="btn btn-submit">Guardar Membro</button>
+    </form>
+</div>
+
+
+        <!-- ABA MÉDICOS -->
+        <div id="tab-medicos" class="tab-content">
+            <h2>Criar Novo Médico</h2>
+            <form id="form-medico">
+                <fieldset>
+                    <legend>Identificação</legend>
+                    <div class="form-row cols-3">
+                        <div class="form-group"><label for="d-nome">Nome</label><input type="text" id="d-nome" required></div>
+                        <div class="form-group"><label for="d-nome-completo">Nome Completo (Opcional)</label><input type="text" id="d-nome-completo"></div>
+                        <div class="form-group"><label for="d-cedula">Cédula (Opcional)</label><input type="text" id="d-cedula"></div>
+                    </div>
+                    <div class="form-row cols-2" style="margin-top: 20px;">
+                        <div class="form-group">
+                            <label>Email (Opcional)</label>
+                            <input type="email" class="initial-input" placeholder="exemplo@email.com">
+                            <div id="d-emails-list" class="dynamic-list" style="margin-top:10px"></div>
+                            <button type="button" class="btn btn-add btn-sm" onclick="addDynamicInput('d-emails-list', 'email', 'exemplo@email.com')">Adicionar Outro</button>
+                        </div>
+                        <div class="form-group">
+                            <label>Telemóvel (Opcional)</label>
+                            <input type="tel" class="initial-input" placeholder="912345678">
+                            <div id="d-telemoveis-list" class="dynamic-list" style="margin-top:10px"></div>
+                            <button type="button" class="btn btn-add btn-sm" onclick="addDynamicInput('d-telemoveis-list', 'tel', '912345678')">Adicionar Outro</button>
+                        </div>
+                    </div>
+                    <div class="form-row cols-2" style="margin-top: 20px;">
+                        <div class="form-group"><label for="d-morada">Morada (Opcional)</label><input type="text" id="d-morada"></div>
+                        <div class="form-group"><label for="d-imagem-link">Imagem (URL, Opcional)</label><input type="url" id="d-imagem-link"></div>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Especialidade (Opcional)</legend>
+                    <div class="form-row cols-2">
+                        <div class="form-group">
+                            <label for="d-especialidades-search">Especialidade(s)</label>
+                            <div id="d-especialidades-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="d-especialidades-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="d-sub-especialidades-search">Sub-Especialidade(s)</label>
+                            <div id="d-sub-especialidades-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="d-sub-especialidades-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div>
+                        </div>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Hospitais e Serviços (Opcional)</legend>
+                    <div id="d-posicoes-list" class="dynamic-list"></div>
+                    <button type="button" class="btn btn-add btn-sm" onclick="addPosicaoInput()">Adicionar Posição</button>
+                </fieldset>
+                <fieldset>
+                   <legend>Médico Cooperador (Opcional)</legend>
+                    <div class="form-row cols-3">
+                        <div class="form-group"><label for="d-situacao-coop">Situação</label><select id="d-situacao-coop"><option value="">Selecione...</option><option>Pendente</option><option>Cooperador</option><option>Não Cooperador</option></select></div>
+                        <div class="form-group"><label for="d-classificacao">Classificação</label><input type="text" id="d-classificacao"></div>
+                        <div class="form-group"><label for="d-clh-search-input">CLH</label><div id="d-clh-searchable-container" class="searchable-select-container"><input type="text" id="d-clh-search-input" class="searchable-select-input" placeholder="Pesquisar..." autocomplete="off"><input type="hidden" id="d-clh-value" class="searchable-select-value"><div class="searchable-select-dropdown"></div></div></div>
+                        <div class="form-group"><label for="d-mailings">Recebe Mailings DIH?</label><select id="d-mailings"><option value="">Selecione...</option><option value="sim">Sim</option><option value="nao">Não</option></select></div>
+                        <div class="form-group"><label for="d-resp-clh">Responsabilidade CLH</label><input type="text" id="d-resp-clh"></div>
+                        <div class="form-group"><label for="d-congregacao-search-input">Congregação</label><div id="d-congregacao-searchable-container" class="searchable-select-container"><input type="text" id="d-congregacao-search-input" class="searchable-select-input" placeholder="Pesquisar..." autocomplete="off"><input type="hidden" id="d-congregacao-value" class="searchable-select-value"><div class="searchable-select-dropdown"></div></div></div>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Links (Opcional)</legend>
+                    <div id="d-links-list" class="dynamic-list"></div>
+                    <button type="button" class="btn btn-add btn-sm" onclick="addLinkInput()">Adicionar Link</button>
+                </fieldset>
+                <button type="submit" class="btn btn-submit">Guardar Médico</button>
+            </form>
+        </div>
+
+        <!-- ABA SERVIÇOS -->
+        <div id="tab-servicos" class="tab-content"><form id="form-servico"><fieldset><legend>Detalhes do Serviço</legend><div class="form-group"><label for="s-nome">Nome do Serviço</label><input type="text" id="s-nome" required></div></fieldset><button type="submit" class="btn btn-submit">Guardar Serviço</button></form></div>
+        <!-- ABA CLH -->
+        <div id="tab-clh" class="tab-content"><form id="form-clh"><fieldset><legend>Detalhes da CLH</legend><div class="form-group"><label for="clh-nome">Nome da CLH</label><input type="text" id="clh-nome" required></div></fieldset><button type="submit" class="btn btn-submit">Guardar CLH</button></form></div>
+        <!-- ABA CONGREGAÇÕES -->
+        <div id="tab-congregacoes" class="tab-content"><form id="form-congregacao"><fieldset><legend>Detalhes da Congregação</legend><div class="form-row cols-2"><div class="form-group"><label for="cong-nome">Nome</label><input type="text" id="cong-nome" required></div><div class="form-group"><label for="cong-cidade">Cidade</label><input type="text" id="cong-cidade" required></div></div></fieldset><button type="submit" class="btn btn-submit">Guardar Congregação</button></form></div>
+        <!-- ABA ESPECIALIDADES -->
+        <div id="tab-especialidades" class="tab-content"><form id="form-especialidade"><fieldset><legend>Detalhes da Especialidade</legend><div class="form-group"><label for="esp-nome">Nome da Especialidade</label><input type="text" id="esp-nome" required></div></fieldset><button type="submit" class="btn btn-submit">Guardar Especialidade</button></form></div>
+
+        <!-- ABA AÇÃO -->
+        <div id="tab-acao" class="tab-content">
+            <h2>Ações <span id="acao-medico-nome" style="color: var(--primary-color); font-weight: normal;"></span></h2>
+            <nav class="tabs sub-tabs">
+                <button class="tab-link active" data-tab="atuacoes">Atuações</button>
+                <button class="tab-link" data-tab="leads">Leads</button>
+                <button class="tab-link" data-tab="pedidos">Pedidos</button>
+            </nav>
+            
+            <div id="tab-atuacoes" class="tab-content active" style="padding-top: 20px;">
+                 <div class="edit-list-container hidden">
+                    <h3>Atuações Associadas</h3>
+                    <div id="atuacoes-list" class="toggle-list"><p>A carregar...</p></div>
+                </div>
+                <button type="button" id="btn-show-form-atuacao" class="btn btn-submit hidden">Criar Nova Atuação</button>
+                <form id="form-atuacao" data-edit-id="">
+                    <fieldset>
+                        <legend>Criar / Editar Atuação</legend>
+                        <div class="form-group"><label for="atuacao-membros-search">Membros</label><div id="atuacao-membros-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-membros-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
+                        <div class="form-row cols-2" style="margin-top:20px;"><div class="form-group"><label for="atuacao-ordem">Nº Ordem</label><input type="text" id="atuacao-ordem"></div><div class="form-group"><label for="atuacao-tipo">Tipo</label><select id="atuacao-tipo"><option value="">Selecione...</option><option>Actuação</option><option>Apresentação</option></select></div><div class="form-group"><label for="atuacao-data">Data</label><input type="date" id="atuacao-data"></div><div class="form-group"><label for="atuacao-quantidade">Quantidade</label><input type="number" id="atuacao-quantidade"></div></div>
+                        <div class="form-group" style="margin-top:20px;"><label for="atuacao-medicos-search">Médico(s)</label><div id="atuacao-medicos-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-medicos-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
+                        <div class="form-group" style="margin-top:20px;"><label for="atuacao-obs">Observações</label><textarea id="atuacao-obs"></textarea></div>
+                    </fieldset>
+                    <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Atuação</button><button type="button" id="btn-cancel-atuacao" class="btn btn-cancel hidden">Cancelar Edição</button></div>
+                </form>
+            </div>
+            
+            <div id="tab-leads" class="tab-content" style="padding-top: 20px;">
+                 <div class="edit-list-container hidden">
+                    <h3>Leads Associadas</h3>
+                    <div id="leads-list" class="toggle-list"><p>A carregar...</p></div>
+                </div>
+                <button type="button" id="btn-show-form-lead" class="btn btn-submit hidden">Criar Nova Lead</button>
+                <form id="form-lead" data-edit-id="">
+                    <fieldset>
+                       <legend>Criar / Editar Lead</legend>
+    <div class="form-row cols-3">
+        <div class="form-group"><label for="lead-hospital-search-input">Hospital</label><div id="lead-hospital-container" class="searchable-select-container"><input type="text" id="lead-hospital-search-input" class="searchable-select-input" placeholder="Pesquisar..." autocomplete="off"><input type="hidden" id="lead-hospital-value" class="searchable-select-value"><div class="searchable-select-dropdown"></div></div></div>
+        <div class="form-group"><label for="lead-data">Data</label><input type="date" id="lead-data"></div>
+        <div class="form-group"><label for="lead-tipo">Tipo</label><select id="lead-tipo"><option value="">Selecione...</option><option>Actuação</option><option>Apresentação</option></select></div>
+    </div>
+
+    <div class="form-group" style="margin-top:20px;">
+        <label for="lead-membros-search">Membro(s)</label>
+        <div id="lead-membros-container" class="multi-search-select-container">
+            <div class="multi-search-select-input-wrapper">
+                <input type="text" id="lead-membros-search" class="multi-search-select-input" placeholder="Pesquisar membro...">
+            </div>
+            <div class="multi-search-select-dropdown"></div>
+        </div>
+    </div>
+
+    <div class="form-group" style="margin-top:20px;">
+        <label for="lead-medicos-search">Médico(s)</label>
+        <div id="lead-medicos-container" class="multi-search-select-container">
+            <div class="multi-search-select-input-wrapper">
+                <input type="text" id="lead-medicos-search" class="multi-search-select-input" placeholder="Pesquisar...">
+            </div>
+            <div class="multi-search-select-dropdown"></div>
+        </div>
+    </div>
+
+    <div class="form-group" style="margin-top:20px;">
+        <label for="lead-descricao">Descrição</label><textarea id="lead-descricao"></textarea>
+    </div>
+
+    <div class="form-row cols-3" style="margin-top:20px;">
+        <div class="form-group"><label for="lead-servico">Serviço</label><select id="lead-servico"><option value="">Selecione...</option></select></div>
+        <div class="form-group"><label for="lead-status">Status</label><select id="lead-status"><option value="">Selecione...</option><option>Ativo</option><option>Desativo</option></select></div>
+        <div class="form-group"><label for="lead-fechado">Fechado?</label><select id="lead-fechado"><option value="">Selecione...</option><option>Sim</option><option>Não</option></select></div>
+    </div>
+</fieldset>
+
+                    <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Lead</button><button type="button" id="btn-cancel-lead" class="btn btn-cancel hidden">Cancelar Edição</button></div>
+                </form>
+            </div>
+            
+             <div id="tab-pedidos" class="tab-content" style="padding-top: 20px;">
+                <div class="edit-list-container hidden">
+                    <h3>Pedidos Associados</h3>
+                    <div id="pedidos-list" class="toggle-list"><p>A carregar...</p></div>
+                </div>
+                <button type="button" class="btn btn-submit hidden">Criar Novo Pedido</button>
+                <form id="form-pedido" data-edit-id=""><fieldset>
+                  <legend>Criar / Editar Pedido</legend>
+
+        <!-- ADICIONE ESTE CAMPO -->
+        <div class="form-group">
+            <label for="pedido-membros-search">Membro(s)</label>
+            <div id="pedido-membros-container" class="multi-search-select-container">
+                <div class="multi-search-select-input-wrapper">
+                    <input type="text" id="pedido-membros-search" class="multi-search-select-input" placeholder="Pesquisar membro...">
+                </div>
+                <div class="multi-search-select-dropdown"></div>
+            </div>
+        </div>
+        
+        <p>Formulário de Pedidos a implementar...</p>
+    </fieldset>
+    <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Pedido</button><button type="button" id="btn-cancel-pedido" class="btn btn-cancel hidden">Cancelar Edição</button></div>
+</form>
+
+            </div>
+        </div>
+    </div>
+    
+    <div class="hidden-template" id="posicao-template">
+        <div class="input-group">
+            <div class="form-group"><label>Hospital</label><div class="searchable-select-container"><input type="text" class="searchable-select-input" placeholder="Pesquisar Hospital..." autocomplete="off"><input type="hidden" class="searchable-select-value posicao-hospital"><div class="searchable-select-dropdown"></div></div></div>
+            <div class="form-group"><label>Serviço</label><div class="searchable-select-container"><input type="text" class="searchable-select-input" placeholder="Pesquisar Serviço..." autocomplete="off"><input type="hidden" class="searchable-select-value posicao-servico"><div class="searchable-select-dropdown"></div></div></div>
+            <div class="form-group"><label>Cargo</label><select class="posicao-cargo"><option value="">Selecione...</option><option>Assistente Hospitalar</option><option>Interno Especialidade</option><option>Chefe de Equipa</option><option>Chefe de Serviço</option><option>Diretor Serviço/Responsável Departamento</option></select></div>
+            <div class="form-group"><label>Horário</label><select class="posicao-horario-dia"><option value="">Selecione...</option><option>Segunda</option><option>Terça</option><option>Quarta</option><option>Quinta</option><option>Sexta</option><option>Sábado</option><option>Domingo</option></select><select class="posicao-horario-parte" style="margin-top: 5px;"><option value="">Selecione...</option><option>Manhã</option><option>Tarde</option><option>Noite</option></select></div>
+            <button type="button" class="btn btn-remove" onclick="this.parentElement.remove()">Remover</button>
+        </div>
+    </div>
+
+</body>
+
+<script type="module">
+// --- IMPORTS E CONFIGURAÇÃO FIREBASE ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, query, where, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
+    authDomain: "medical-5baa0.firebaseapp.com",
+    projectId: "medical-5baa0",
+    storageBucket: "medical-5baa0.appspot.com",
+    messagingSenderId: "900547659131",
+    appId: "1:900547659131:web:708f90f8fa1500d76569de"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// --- VARIÁVEIS GLOBAIS ---
+let currentEditId = null;
+let currentEditType = null;
+let hospitaisCache = [];
+let servicosCache = [];
+let especialidadesCache = [];
+let membrosCache = [];
+let clhCache = [];
+let congregacoesCache = [];
+let medicosCache = []; 
+
+// --- DEFINIÇÕES DE FUNÇÕES AUXILIARES ---
+
+async function populateDataCache(collectionName, fieldName) {
+    try {
+        const snapshot = await getDocs(collection(db, collectionName));
+        return snapshot.docs.map(doc => ({ id: doc.id, nome: doc.data()[fieldName] || '' }));
+    } catch (error) {
+        console.error(`Erro ao carregar cache para ${collectionName}:`, error);
+        return [];
+    }
+}
+
+async function syncAssociations(docId, oldAssociatedIds, newAssociatedIds, collectionName, fieldToUpdate) {
+    const oldIds = new Set(oldAssociatedIds);
+    const newIds = new Set(newAssociatedIds);
+    const toAdd = [...newIds].filter(id => !oldIds.has(id));
+    const toRemove = [...oldIds].filter(id => !newIds.has(id));
+    const promises = [];
+    toAdd.forEach(id => {
+        const docRef = doc(db, collectionName, id);
+        promises.push(updateDoc(docRef, { [fieldToUpdate]: arrayUnion(docId) }));
+    });
+    toRemove.forEach(id => {
+        const docRef = doc(db, collectionName, id);
+        promises.push(updateDoc(docRef, { [fieldToUpdate]: arrayRemove(docId) }));
+    });
+    if (promises.length > 0) {
+        await Promise.all(promises);
+    }
+}
+
+
+
+
+
+
+async function populateMedicosCache() {
+    try {
+        const snapshot = await getDocs(collection(db, 'medicos'));
+        return snapshot.docs.map(doc => ({ 
+            id: doc.id, 
+            nome: doc.data().nome || '', 
+            nome_completo: doc.data().nome_completo || '' 
+        }));
+    } catch (error) {
+        console.error(`Erro ao carregar cache para Médicos:`, error);
+        return [];
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+function getDynamicInputValues(containerId) {
+    return Array.from(document.querySelectorAll(`#${containerId} .dynamic-input`)).map(input => input.value.trim()).filter(Boolean);
+}
+
+window.addDynamicInput = function(containerId, type = 'text', placeholder = '', value = '') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const div = document.createElement('div');
+    div.className = 'input-group';
+    
+    let inputElement;
+    if (type === 'textarea') {
+        inputElement = document.createElement('textarea');
+    } else {
+        inputElement = document.createElement('input');
+        inputElement.type = type;
+    }
+
+    inputElement.placeholder = placeholder;
+    inputElement.className = 'dynamic-input';
+    inputElement.value = value;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn btn-remove';
+    removeBtn.textContent = 'Remover';
+    removeBtn.onclick = () => div.remove();
+    
+    div.appendChild(inputElement);
+    div.appendChild(removeBtn);
+    container.appendChild(div);
+};
+
+window.addLinkInput = function(link = {}) { 
+    const container = document.getElementById('d-links-list');
+    if (!container) return;
+    const div = document.createElement('div');
+    div.className = 'input-group';
+    const inputElement = document.createElement('input');
+    inputElement.type = 'url';
+    inputElement.placeholder = 'https://exemplo.com';
+    inputElement.className = 'dynamic-input';
+    inputElement.value = link.url || '';
+    if (link.data_adicionado) {
+        inputElement.dataset.date = link.data_adicionado;
+    }
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn btn-remove';
+    removeBtn.textContent = 'Remover';
+    removeBtn.onclick = () => div.remove();
+    div.appendChild(inputElement);
+    div.appendChild(removeBtn);
+    container.appendChild(div);
+};
+
+window.addGrupoInput = function(grupo = {}) {
+    const container = document.getElementById('m-grupos-list');
+    const div = document.createElement('div');
+    div.className = 'input-group';
+    div.innerHTML = `
+        <select class="m-grupo-tipo">
+            <option value="" selected>Tipo...</option>
+            <option>CLH</option><option>GVD</option>
+            <option>Publicador</option>
+        </select>
+        <input type="date" class="m-grupo-data-entrada" title="Data de Entrada">
+        <input type="date" class="m-grupo-data-saida" title="Data de Saída">
+        <button type="button" class="btn btn-remove" onclick="this.parentElement.remove()">Remover</button>
+    `;
+    div.querySelector('.m-grupo-tipo').value = grupo.tipo || '';
+    div.querySelector('.m-grupo-data-entrada').value = grupo.data_entrada || '';
+    div.querySelector('.m-grupo-data-saida').value = grupo.data_saida || '';
+    container.appendChild(div);
+};
+
+window.addPosicaoInput = function(posicao = {}) {
+    const container = document.getElementById('d-posicoes-list');
+    const template = document.getElementById('posicao-template')?.firstElementChild.cloneNode(true);
+    if (!container || !template) return;
+    template.querySelector('.posicao-cargo').value = posicao.cargo || '';
+    if (posicao.horario) {
+        template.querySelector('.posicao-horario-dia').value = posicao.horario.dia || '';
+        template.querySelector('.posicao-horario-parte').value = posicao.horario.parte || '';
+    }
+    const hospitalContainer = template.querySelector('.posicao-hospital').parentElement;
+    if (posicao.hospital_id) {
+        const hospital = hospitaisCache.find(h => h.id === posicao.hospital_id);
+        if (hospital) {
+            hospitalContainer.querySelector('.searchable-select-input').value = hospital.nome;
+            hospitalContainer.querySelector('.searchable-select-value').value = hospital.id;
+        }
+    }
+    const servicoContainer = template.querySelector('.posicao-servico').parentElement;
+     if (posicao.servico_id) {
+        const servico = servicosCache.find(s => s.id === posicao.servico_id);
+        if (servico) {
+            servicoContainer.querySelector('.searchable-select-input').value = servico.nome;
+            servicoContainer.querySelector('.searchable-select-value').value = servico.id;
+        }
+    }
+    container.appendChild(template);
+    makeSelectSearchable(hospitalContainer, hospitaisCache);
+    makeSelectSearchable(servicoContainer, servicosCache);
+};
+
+function initMultiSearchSelect(containerId, dataCache) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const searchInput = container.querySelector('.multi-search-select-input');
+    const dropdown = container.querySelector('.multi-search-select-dropdown');
+    const pillsContainer = container.querySelector('.multi-search-select-input-wrapper');
+    const selectedIds = new Set();
+    const renderDropdown = (filter = '') => {
+        const lowerFilter = filter.toLowerCase();
+        const filteredData = dataCache.filter(item => 
+            item.nome.toLowerCase().includes(lowerFilter) ||
+            (item.nome_completo && item.nome_completo.toLowerCase().includes(lowerFilter))
+        );
+        dropdown.innerHTML = filteredData.map(item => `<div class="multi-search-select-item"><input type="checkbox" id="ms-${containerId}-${item.id}" data-id="${item.id}" data-name="${item.nome}" ${selectedIds.has(item.id) ? 'checked' : ''}><label for="ms-${containerId}-${item.id}">${item.nome}</label></div>`).join('');
+    };
+    const addPill = (id, name) => {
+        if (pillsContainer.querySelector(`.multi-search-select-pill[data-id="${id}"]`)) return;
+        const pill = document.createElement('span');
+        pill.className = 'multi-search-select-pill';
+        pill.dataset.id = id;
+        pill.innerHTML = `${name} <span class="remove-pill">&times;</span>`;
+        pillsContainer.insertBefore(pill, searchInput);
+    };
+    const removePill = (id) => {
+        const pill = pillsContainer.querySelector(`.multi-search-select-pill[data-id="${id}"]`);
+        if (pill) pill.remove();
+    };
+    searchInput.addEventListener('focus', () => { renderDropdown(searchInput.value); dropdown.style.display = 'block'; });
+    searchInput.addEventListener('input', () => renderDropdown(searchInput.value));
+    dropdown.addEventListener('change', e => {
+        if (e.target.type === 'checkbox') {
+            const { id, name } = e.target.dataset;
+            e.target.checked ? selectedIds.add(id) : selectedIds.delete(id);
+            e.target.checked ? addPill(id, name) : removePill(id);
+        }
+    });
+    pillsContainer.addEventListener('click', e => {
+        if (e.target.classList.contains('remove-pill')) {
+            const pill = e.target.parentElement;
+            const id = pill.dataset.id;
+            selectedIds.delete(id);
+            removePill(id);
+            const checkbox = dropdown.querySelector(`input[data-id="${id}"]`);
+            if (checkbox) checkbox.checked = false;
+        } else if (e.target === pillsContainer) {
+            searchInput.focus();
+        }
+    });
+    document.addEventListener('click', e => { if (!container.contains(e.target)) { dropdown.style.display = 'none'; } });
+    container.getSelectedIds = () => Array.from(selectedIds);
+    container.setSelectedIds = (ids = []) => {
+        selectedIds.clear();
+        pillsContainer.querySelectorAll('.multi-search-select-pill').forEach(pill => pill.remove());
+        ids.forEach(id => {
+            const item = dataCache.find(d => d.id === id);
+            if (item) {
+                selectedIds.add(id);
+                addPill(id, item.nome);
+            }
+        });
+    };
+}
+
+function makeSelectSearchable(containerElement, dataCache) {
+    if (!containerElement) return;
+    const searchInput = containerElement.querySelector('.searchable-select-input');
+    const hiddenValueInput = containerElement.querySelector('.searchable-select-value');
+    const dropdown = containerElement.querySelector('.searchable-select-dropdown');
+    const renderDropdown = (term) => {
+        const lowerCaseTerm = term.toLowerCase();
+        const filtered = dataCache.filter(item => item.nome.toLowerCase().includes(lowerCaseTerm));
+        dropdown.innerHTML = filtered.map(item => `<div class="dropdown-item" data-id="${item.id}" data-name="${item.nome}">${item.nome}</div>`).join('');
+        dropdown.style.display = filtered.length > 0 ? 'block' : 'none';
+    };
+    searchInput.addEventListener('focus', () => renderDropdown(searchInput.value));
+    searchInput.addEventListener('input', () => renderDropdown(searchInput.value));
+    dropdown.addEventListener('click', e => {
+        if (e.target.classList.contains('dropdown-item')) {
+            const { id, name } = e.target.dataset;
+            searchInput.value = name;
+            hiddenValueInput.value = id;
+            dropdown.style.display = 'none';
+        }
+    });
+    document.addEventListener('click', e => { if (!containerElement.contains(e.target)) { dropdown.style.display = 'none'; } });
+}
+
+function formatDate(isoString) {
+    if (!isoString) return 'Data não definida';
+    try {
+        const date = new Date(isoString);
+        return date.toLocaleDateString('pt-PT', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch (e) { return isoString; }
+}
+
+function truncateText(text, length = 120) {
+    if (!text || text.length <= length) return text || 'Sem descrição.';
+    return text.substring(0, length) + '...';
+}
+
+function renderToggleList(containerId, items, titleField, textField, collectionName) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (items.length === 0) {
+        container.innerHTML = `<p>Nenhum item encontrado para este médico.</p>`;
+        return;
+    }
+    container.innerHTML = items
+        .sort((a,b) => new Date(b.data[titleField]) - new Date(a.data[titleField]))
+        .map(item => `
+        <div class="toggle-list-item" data-id="${item.id}" data-collection="${collectionName}">
+            <strong>${formatDate(item.data[titleField])}</strong>
+            <p>${truncateText(item.data[textField])}</p>
+        </div>
+    `).join('');
+}
+
+function setupFormToggle(formId, showButtonId, cancelButtonId, resetFunction) {
+    const form = document.getElementById(formId);
+    const showButton = document.getElementById(showButtonId);
+    const cancelButton = document.getElementById(cancelButtonId);
+    if (!form || !showButton) return;
+    showButton.addEventListener('click', () => {
+        resetFunction();
+        form.classList.remove('hidden');
+        showButton.classList.add('hidden');
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    cancelButton?.addEventListener('click', () => {
+        resetFunction();
+    });
+}
+
+function setupActionEditor(doctorId) {
+    const listContainers = ['atuacoes-list', 'leads-list', 'pedidos-list'];
+    listContainers.forEach(containerId => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.addEventListener('click', async (e) => {
+            const item = e.target.closest('.toggle-list-item');
+            if (!item) return;
+            container.querySelectorAll('.toggle-list-item').forEach(el => el.classList.remove('active'));
+            item.classList.add('active');
+            const { id, collection } = item.dataset;
+            const docSnap = await getDoc(doc(db, collection, id));
+            if (docSnap.exists()) {
+                switch(collection) {
+                    case 'atuacoes': populateAtuacaoForm(docSnap.data(), id); break;
+                    case 'leads': populateLeadForm(docSnap.data(), id); break;
+                }
+            }
+        });
+    });
+}
+
+function populateAtuacaoForm(data, id) {
+    const form = document.getElementById('form-atuacao');
+    if (!form) return;
+    form.classList.remove('hidden');
+    document.getElementById('btn-show-form-atuacao').classList.add('hidden');
+    form.dataset.editId = id;
+    form.querySelector('legend').textContent = 'Editar Atuação';
+    form.querySelector('.btn-submit').textContent = 'Atualizar Atuação';
+    document.getElementById('btn-cancel-atuacao').classList.remove('hidden');
+    document.getElementById('atuacao-membros-container').setSelectedIds(data.membro_ids || []);
+    document.getElementById('atuacao-medicos-container').setSelectedIds(data.medico_ids || []);
+    document.getElementById('atuacao-ordem').value = data.ordem || '';
+    document.getElementById('atuacao-tipo').value = data.tipo || '';
+    document.getElementById('atuacao-data').value = data.data || '';
+    document.getElementById('atuacao-quantidade').value = data.quantidade || '';
+    document.getElementById('atuacao-obs').value = data.observacoes || '';
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetAtuacaoForm() {
+    const form = document.getElementById('form-atuacao');
+    if (!form) return;
+    form.reset();
+    form.dataset.editId = '';
+    form.querySelector('legend').textContent = 'Criar Nova Atuação';
+    form.querySelector('.btn-submit').textContent = 'Guardar Atuação';
+    document.getElementById('btn-cancel-atuacao').classList.add('hidden');
+    document.getElementById('atuacao-membros-container').setSelectedIds([]);
+    document.getElementById('atuacao-medicos-container').setSelectedIds(currentEditId ? [currentEditId] : []);
+    document.querySelectorAll('#atuacoes-list .toggle-list-item.active').forEach(el => el.classList.remove('active'));
+    if (currentEditType === 'medico_acao') {
+        form.classList.add('hidden');
+        document.getElementById('btn-show-form-atuacao').classList.remove('hidden');
+    }
+}
+
+function populateLeadForm(data, id) {
+    const form = document.getElementById('form-lead');
+    if (!form) return;
+    form.classList.remove('hidden');
+    document.getElementById('btn-show-form-lead').classList.add('hidden');
+    form.dataset.editId = id;
+    form.querySelector('legend').textContent = 'Editar Lead';
+    form.querySelector('.btn-submit').textContent = 'Atualizar Lead';
+    document.getElementById('btn-cancel-lead').classList.remove('hidden');
+    document.getElementById('lead-membros-container').setSelectedIds(data.membro_ids || []);
+    document.getElementById('lead-medicos-container').setSelectedIds(data.medico_ids || []);
+    document.getElementById('lead-data').value = data.data || '';
+    document.getElementById('lead-tipo').value = data.tipo || '';
+    document.getElementById('lead-descricao').value = data.descricao || '';
+    document.getElementById('lead-servico').value = data.servico_id || '';
+    document.getElementById('lead-status').value = data.status || '';
+    document.getElementById('lead-fechado').value = data.fechado || '';
+    const hospitalInput = document.getElementById('lead-hospital-search-input');
+    const hospitalValue = document.getElementById('lead-hospital-value');
+    hospitalValue.value = data.hospital_id || '';
+    const hospital = hospitaisCache.find(h => h.id === data.hospital_id);
+    hospitalInput.value = hospital ? hospital.nome : '';
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetLeadForm() {
+    const form = document.getElementById('form-lead');
+    if (!form) return;
+    form.reset();
+    form.dataset.editId = '';
+    form.querySelector('legend').textContent = 'Criar Nova Lead';
+    form.querySelector('.btn-submit').textContent = 'Guardar Lead';
+    document.getElementById('btn-cancel-lead').classList.add('hidden');
+    document.getElementById('lead-membros-container').setSelectedIds([]);
+    document.getElementById('lead-medicos-container').setSelectedIds(currentEditId ? [currentEditId] : []);
+    document.getElementById('lead-hospital-search-input').value = '';
+    document.getElementById('lead-hospital-value').value = '';
+    document.querySelectorAll('#leads-list .toggle-list-item.active').forEach(el => el.classList.remove('active'));
+    if (currentEditType === 'medico_acao') {
+        form.classList.add('hidden');
+        document.getElementById('btn-show-form-lead').classList.remove('hidden');
+    }
+}
+
+async function initializeActionEditor(medicoId) {
+    const medicoDoc = await getDoc(doc(db, 'medicos', medicoId));
+    if (!medicoDoc.exists()) {
+        console.error("Médico para ação não encontrado!");
+        return;
+    }
+    const medicoData = medicoDoc.data();
+    const nomeMedicoEl = document.getElementById('acao-medico-nome');
+    if (nomeMedicoEl) nomeMedicoEl.textContent = `- ${medicoData.nome}`;
+    const atuacoesIds = medicoData.atuacoes_ids || [];
+    if (atuacoesIds.length > 0) {
+        const atuacoesPromises = atuacoesIds.map(id => getDoc(doc(db, 'atuacoes', id)));
+        const atuacoesDocs = await Promise.all(atuacoesPromises);
+        const atuacoesData = atuacoesDocs.filter(d => d.exists()).map(d => ({id: d.id, data: d.data()}));
+        renderToggleList('atuacoes-list', atuacoesData, 'data', 'observacoes', 'atuacoes');
+    } else {
+        renderToggleList('atuacoes-list', [], '', '', '');
+    }
+    const leadsQuery = query(collection(db, 'leads'), where('medico_ids', 'array-contains', medicoId));
+    const leadsSnapshot = await getDocs(leadsQuery);
+    const leadsData = leadsSnapshot.docs.map(d => ({id: d.id, data: d.data()}));
+    renderToggleList('leads-list', leadsData, 'data', 'descricao', 'leads');
+    renderToggleList('pedidos-list', [], 'data', 'descricao', 'pedidos');
+    setupActionEditor(medicoId);
+}
+
+async function loadAndPopulateMedicoForm(medicoId) {
+    try {
+        const docRef = doc(db, 'medicos', medicoId);
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) {
+            alert("Erro: Médico não encontrado.");
+            return;
+        }
+        const data = docSnap.data();
+        document.querySelector('#tab-medicos h2').textContent = `Editar Médico: ${data.nome}`;
+        document.querySelector('#form-medico .btn-submit').textContent = 'Atualizar Médico';
+        document.getElementById('d-nome').value = data.nome || '';
+        document.getElementById('d-nome-completo').value = data.nome_completo || '';
+        document.getElementById('d-cedula').value = data.cedula || '';
+        document.getElementById('d-morada').value = data.morada || '';
+        document.getElementById('d-imagem-link').value = data.imagem_url || '';
+        document.getElementById('d-situacao-coop').value = data.cooperador_situacao || '';
+        document.getElementById('d-classificacao').value = data.classificacao || '';
+        document.getElementById('d-mailings').value = data.recebe_mailings_dih ? 'sim' : 'nao';
+        document.getElementById('d-resp-clh').value = data.responsabilidade_clh_mailing || '';
+        document.querySelector('#tab-medicos .initial-input[type="email"]').value = (data.emails || [])[0] || '';
+        document.getElementById('d-emails-list').innerHTML = '';
+        (data.emails || []).slice(1).forEach(val => addDynamicInput('d-emails-list', 'email', 'exemplo@email.com', val));
+        document.querySelector('#tab-medicos .initial-input[type="tel"]').value = (data.telemoveis || [])[0] || '';
+        document.getElementById('d-telemoveis-list').innerHTML = '';
+        (data.telemoveis || []).slice(1).forEach(val => addDynamicInput('d-telemoveis-list', 'tel', '912345678', val));
+        document.getElementById('d-links-list').innerHTML = '';
+        (data.links || []).forEach(linkObject => addLinkInput(linkObject));
+        document.getElementById('d-especialidades-container').setSelectedIds(data.especialidade_ids || []);
+        document.getElementById('d-sub-especialidades-container').setSelectedIds(data.sub_especialidade_ids || []);
+        const clhId = data.clh_id || '';
+        document.getElementById('d-clh-value').value = clhId;
+        if(clhId) {
+            const clh = clhCache.find(c => c.id === clhId);
+            if(clh) document.getElementById('d-clh-search-input').value = clh.nome;
+        }
+        const congId = data.congregacao_id || '';
+        document.getElementById('d-congregacao-value').value = congId;
+        if(congId) {
+            const cong = congregacoesCache.find(c => c.id === congId);
+            if(cong) document.getElementById('d-congregacao-search-input').value = cong.nome;
+        }
+        const posicoesContainer = document.getElementById('d-posicoes-list');
+        posicoesContainer.innerHTML = '';
+        if (data.posicoes && data.posicoes.length > 0) {
+            data.posicoes.forEach(pos => addPosicaoInput(pos));
+        }
+    } catch (error) {
+        console.error("Erro ao carregar médico para edição:", error);
+    }
+}
+
+
+async function loadAndPopulateMembroForm(membroId) {
+    try {
+        const docRef = doc(db, 'membrosclh', membroId);
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) {
+            alert("Erro: Membro CLH não encontrado."); return;
+        }
+        const data = docSnap.data();
+        
+        document.querySelector('#tab-membros h2').textContent = `Editar Membro: ${data.nome}`;
+        document.querySelector('#form-membro .btn-submit').textContent = 'Atualizar Membro';
+
+        document.getElementById('m-nome').value = data.nome || '';
+        document.getElementById('m-nome-completo').value = data.nome_completo || '';
+        document.getElementById('m-genero').value = data.genero || 'masculino';
+        document.getElementById('m-congregacao').value = data.congregacao_id || '';
+        document.getElementById('m-ativo').value = data.ativo ? 'sim' : 'nao';
+        document.getElementById('m-morada').value = data.morada || '';
+        document.getElementById('m-foto-link').value = data.foto_url || '';
+        document.getElementById('m-cartao-aer').value = data.cartao_aer || 'Não';
+        document.getElementById('m-mailings').value = data.recebe_mailings_dih ? 'sim' : 'nao';
+
+        document.getElementById('m-hospitais-container').setSelectedIds(data.hospitais_responsabilidade_ids || []);
+
+        const gruposContainer = document.getElementById('m-grupos-list');
+        gruposContainer.innerHTML = '';
+        if (data.grupos && data.grupos.length > 0) {
+            data.grupos.forEach(grupo => addGrupoInput(grupo));
+        } else {
+            addGrupoInput();
+        }
+        
+        document.getElementById('m-emails-list').innerHTML = '';
+        const emails = data.emails || [];
+        document.querySelector('#tab-membros .initial-input[type="email"]').value = emails[0] || '';
+        emails.slice(1).forEach(val => addDynamicInput('m-emails-list', 'email', 'exemplo@email.com', val));
+        
+        document.getElementById('m-telemoveis-list').innerHTML = '';
+        const telemoveis = data.telemoveis || [];
+        document.querySelector('#tab-membros .initial-input[type="tel"]').value = telemoveis[0] || '';
+        telemoveis.slice(1).forEach(val => addDynamicInput('m-telemoveis-list', 'tel', '912345678', val));
+
+    } catch (error) {
+        console.error("Erro ao carregar membro para edição:", error);
+    }
+}
+
+
+
+async function loadAndPopulateHospitalForm(hospitalId) {
+    try {
+        const docRef = doc(db, 'hospitais', hospitalId);
+        const docSnap = await getDoc(docRef);
+        if (!docSnap.exists()) { alert("Erro: Hospital não encontrado."); return; }
+        const data = docSnap.data();
+
+        document.querySelector('#tab-hospitais h2').textContent = `Editar Hospital: ${data.nome}`;
+        document.querySelector('#form-hospital .btn-submit').textContent = 'Atualizar Hospital';
+
+        document.getElementById('h-nome').value = data.nome || '';
+        document.getElementById('h-morada').value = data.morada || '';
+        document.getElementById('h-cidade').value = data.cidade || '';
+        document.getElementById('h-cp').value = data.cp || '';
+        document.getElementById('h-contacto').value = data.contacto || '';
+        document.getElementById('h-fax').value = data.fax || '';
+        document.getElementById('h-email').value = data.email || '';
+        document.getElementById('h-site').value = data.site || '';
+        document.getElementById('h-sigla').value = data.sigla || '';
+        document.getElementById('h-pasta').value = data.pasta_arquivo || '';
+        document.getElementById('h-trauma-adulto').value = data.trauma_adulto_nivel || 'S/Trauma Adulto';
+        document.getElementById('h-trauma-pediatrico').value = data.trauma_pediatrico_nivel || 'S/Trauma Pediatrico';
+        
+        document.getElementById('h-uls').value = data.uls ? 'sim' : 'nao';
+        document.getElementById('h-publico').value = data.publico ? 'sim' : 'nao';
+        document.getElementById('h-privado').value = data.privado ? 'sim' : 'nao';
+        document.getElementById('h-universitario').value = data.universitario ? 'sim' : 'nao';
+        document.getElementById('h-pediatrico').value = data.pediatrico ? 'sim' : 'nao';
+        document.getElementById('h-consultorio').value = data.consultorio ? 'sim' : 'nao';
+        document.getElementById('h-ativo').value = data.ativo ? 'sim' : 'nao';
+
+        document.getElementById('h-responsaveis-container').setSelectedIds(data.responsavel_ids || []);
+        document.getElementById('h-servicos-container').setSelectedIds(data.servicos_ids || []);
+        const clhId = data.clh_id || '';
+        document.getElementById('h-clh-value').value = clhId;
+        if(clhId) {
+            const clh = clhCache.find(c => c.id === clhId);
+            if(clh) document.getElementById('h-clh-search-input').value = clh.nome;
+        }
+
+        document.getElementById('h-convencoes-list').innerHTML = '';
+        (data.convencoes || []).forEach(val => addDynamicInput('h-convencoes-list', 'text', 'Nome da Convenção', val));
+        document.getElementById('h-notas-list').innerHTML = '';
+        (data.notas || []).forEach(val => addDynamicInput('h-notas-list', 'textarea', 'Escreva uma nota...', val));
+
+    } catch (error) { console.error("Erro ao carregar hospital para edição:", error); }
+}
+
+function switchToTab(tabId) {
+    const btn = document.querySelector(`.tab-link[data-tab="${tabId}"]`);
+    if (btn) btn.click();
+}
+
+async function handleSimpleCreate(formId, coll, fieldId, getExtra = () => ({})) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const nomeEl = document.getElementById(fieldId);
+        const nome = nomeEl ? nomeEl.value.trim() : '';
+        if (!nome) {
+            alert('O campo de nome é obrigatório.');
+            return;
+        }
+        try {
+            const data = { nome, ...getExtra(), criado_em: new Date() };
+            await addDoc(collection(db, coll), data);
+            alert(`${coll.charAt(0).toUpperCase() + coll.slice(1)} guardado(a) com sucesso!`);
+            e.target.reset();
+        } catch (err) {
+            console.error(`Erro ao guardar ${coll}:`, err);
+            alert('Ocorreu um erro.');
+        }
+    });
+}
+
+
+// --- PONTO DE ENTRADA PRINCIPAL ---
+document.addEventListener('DOMContentLoaded', async () => {
+    
+    // 1. CONFIGURAR EVENT LISTENERS PRIMEIRO
+    document.querySelectorAll(".tabs").forEach(c => {
+        c.addEventListener("click", e => {
+            if (e.target.matches(".tab-link")) {
+                const t = e.target.dataset.tab;
+                c.querySelectorAll(".tab-link").forEach(l => l.classList.remove("active"));
+                e.target.classList.add("active");
+                let p = e.target.closest('.container, .tab-content');
+                if (p) {
+                    p.querySelectorAll(":scope > .tab-content").forEach(content => content.classList.remove("active"));
+                    const activeContent = p.querySelector(`#tab-${t}`);
+                    if (activeContent) activeContent.classList.add("active");
+                }
+            }
+        });
+    });
+    
+    document.getElementById('form-hospital')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const hospitalData = {
+            nome: document.getElementById('h-nome').value,
+            morada: document.getElementById('h-morada').value,
+            cidade: document.getElementById('h-cidade').value,
+            cp: document.getElementById('h-cp').value,
+            contacto: document.getElementById('h-contacto').value,
+            fax: document.getElementById('h-fax').value,
+            email: document.getElementById('h-email').value,
+            site: document.getElementById('h-site').value,
+            sigla: document.getElementById('h-sigla').value,
+            pasta_arquivo: document.getElementById('h-pasta').value,
+            trauma_adulto_nivel: document.getElementById('h-trauma-adulto').value,
+            trauma_pediatrico_nivel: document.getElementById('h-trauma-pediatrico').value,
+            clh_id: document.getElementById('h-clh-value').value,
+            responsavel_ids: document.getElementById('h-responsaveis-container').getSelectedIds(),
+            servicos_ids: document.getElementById('h-servicos-container').getSelectedIds(),
+            convencoes: getDynamicInputValues('h-convencoes-list'),
+            notas: getDynamicInputValues('h-notas-list'),
+            uls: document.getElementById('h-uls').value === 'sim',
+            publico: document.getElementById('h-publico').value === 'sim',
+            privado: document.getElementById('h-privado').value === 'sim',
+            universitario: document.getElementById('h-universitario').value === 'sim',
+            pediatrico: document.getElementById('h-pediatrico').value === 'sim',
+            consultorio: document.getElementById('h-consultorio').value === 'sim',
+            ativo: document.getElementById('h-ativo').value === 'sim',
+        };
+        try {
+            if (currentEditId && currentEditType === 'hospital') {
+                await updateDoc(doc(db, "hospitais", currentEditId), hospitalData);
+                alert("Hospital atualizado com sucesso!");
+                window.location.href = 'lista_hospitais.html';
+            } else {
+                hospitalData.criado_em = new Date();
+                await addDoc(collection(db, "hospitais"), hospitalData);
+                alert("Hospital guardado com sucesso!");
+                e.target.reset();
+                document.getElementById('h-responsaveis-container').setSelectedIds([]);
+                document.getElementById('h-servicos-container').setSelectedIds([]);
+                document.getElementById('h-convencoes-list').innerHTML = '';
+                document.getElementById('h-notas-list').innerHTML = '';
+            }
+        } catch (err) {
+            console.error("Erro ao guardar hospital:", err);
+            alert("Ocorreu um erro ao guardar o hospital.");
+        }
+    });
+
+    document.getElementById('form-membro')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const initialEmail = document.querySelector('#tab-membros .initial-input[type="email"]').value.trim();
+        const allEmails = [initialEmail, ...getDynamicInputValues('m-emails-list')].filter(Boolean);
+        const initialTel = document.querySelector('#tab-membros .initial-input[type="tel"]').value.trim();
+        const allTels = [initialTel, ...getDynamicInputValues('m-telemoveis-list')].filter(Boolean);
+        const grupos = Array.from(document.querySelectorAll('#m-grupos-list .input-group')).map(g => ({
+            tipo: g.querySelector('.m-grupo-tipo').value,
+            data_entrada: g.querySelector('.m-grupo-data-entrada').value,
+            data_saida: g.querySelector('.m-grupo-data-saida').value
+        })).filter(g => g.tipo);
+        const membroData = {
+            nome: document.getElementById('m-nome').value.trim(),
+            nome_completo: document.getElementById('m-nome-completo').value.trim(),
+            genero: document.getElementById('m-genero').value,
+            congregacao_id: document.getElementById('m-congregacao').value,
+            ativo: document.getElementById('m-ativo').value === 'sim',
+            hospitais_responsabilidade_ids: document.getElementById('m-hospitais-container').getSelectedIds(),
+            grupos: grupos,
+            morada: document.getElementById('m-morada').value.trim(),
+            emails: allEmails,
+            telemoveis: allTels,
+            foto_url: document.getElementById('m-foto-link').value.trim(),
+            cartao_aer: document.getElementById('m-cartao-aer').value,
+            recebe_mailings_dih: document.getElementById('m-mailings').value === 'sim',
+        };
+        try {
+            if (currentEditId && currentEditType === 'membro') {
+                await updateDoc(doc(db, "membrosclh", currentEditId), membroData);
+                alert("Membro atualizado com sucesso!");
+               window.location.href = 'lista_membros.html';
+            } else {
+                membroData.criado_em = new Date();
+                await addDoc(collection(db, "membrosclh"), membroData);
+                alert("Membro guardado com sucesso!");
+                e.target.reset();
+                document.getElementById('m-emails-list').innerHTML = '';
+                document.getElementById('m-telemoveis-list').innerHTML = '';
+                document.getElementById('m-grupos-list').innerHTML = '';
+                addGrupoInput();
+                document.getElementById('m-hospitais-container').setSelectedIds([]);
+            }
+        } catch (err) {
+            console.error("Erro ao guardar membro:", err);
+            alert("Ocorreu um erro ao guardar o membro.");
+        }
+    });
+    
+    document.getElementById('form-medico')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const medicoData = {
+            nome: document.getElementById('d-nome').value,
+            nome_completo: document.getElementById('d-nome-completo').value,
+            cedula: document.getElementById('d-cedula').value,
+            morada: document.getElementById('d-morada').value,
+            imagem_url: document.getElementById('d-imagem-link').value,
+            cooperador_situacao: document.getElementById('d-situacao-coop').value,
+            classificacao: document.getElementById('d-classificacao').value,
+            responsabilidade_clh_mailing: document.getElementById('d-resp-clh').value,
+            recebe_mailings_dih: document.getElementById('d-mailings').value === 'sim',
+            clh_id: document.getElementById('d-clh-value').value,
+            congregacao_id: document.getElementById('d-congregacao-value').value
+        };
+        const initialEmail = document.querySelector('#tab-medicos .initial-input[type="email"]').value.trim();
+        const additionalEmails = getDynamicInputValues('d-emails-list');
+        medicoData.emails = [initialEmail, ...additionalEmails].filter(Boolean);
+        const initialTel = document.querySelector('#tab-medicos .initial-input[type="tel"]').value.trim();
+        const additionalTels = getDynamicInputValues('d-telemoveis-list');
+        medicoData.telemoveis = [initialTel, ...additionalTels].filter(Boolean);
+        medicoData.especialidade_ids = document.getElementById('d-especialidades-container').getSelectedIds();
+        medicoData.sub_especialidade_ids = document.getElementById('d-sub-especialidades-container').getSelectedIds();
+        medicoData.posicoes = Array.from(document.querySelectorAll('#d-posicoes-list .input-group')).map(p => ({ 
+            hospital_id: p.querySelector('.posicao-hospital')?.value, 
+            servico_id: p.querySelector('.posicao-servico')?.value, 
+            cargo: p.querySelector('.posicao-cargo')?.value, 
+            horario: { 
+                dia: p.querySelector('.posicao-horario-dia')?.value, 
+                parte: p.querySelector('.posicao-horario-parte')?.value 
+            } 
+        })).filter(p => p.hospital_id);
+        medicoData.links = Array.from(document.querySelectorAll('#d-links-list .dynamic-input')).map(input => {
+            const url = input.value.trim();
+            if (!url) return null;
+            const date = input.dataset.date || new Date().toISOString(); 
+            return { url: url, data_adicionado: date }; 
+        }).filter(Boolean);
+        try {
+            if (currentEditId && (currentEditType === 'medico' || currentEditType === 'medico_acao')) {
+                const medicoRef = doc(db, "medicos", currentEditId);
+                await updateDoc(medicoRef, medicoData);
+                alert("Médico atualizado com sucesso!");
+                if (currentEditType === 'medico_acao') {
+                    switchToTab('acao');
+                } else {
+                     window.location.href = `medico.html?id=${currentEditId}`;
+                }
+            } else {
+                medicoData.criado_em = new Date();
+                const docRef = await addDoc(collection(db, "medicos"), medicoData);
+                alert("Médico guardado com sucesso!");
+                e.target.reset();
+                document.getElementById('d-emails-list').innerHTML = '';
+                document.getElementById('d-telemoveis-list').innerHTML = '';
+                document.getElementById('d-links-list').innerHTML = '';
+                document.getElementById('d-posicoes-list').innerHTML = '';
+                addPosicaoInput();
+                document.getElementById('d-especialidades-container').setSelectedIds([]);
+                document.getElementById('d-sub-especialidades-container').setSelectedIds([]);
+            }
+        } catch (err) { 
+            console.error("Erro ao guardar médico:", err); 
+            alert("Ocorreu um erro ao guardar o médico."); 
+        }
+    });
+
+    // ✅ MOVIDO PARA AQUI DENTRO
+    document.getElementById('form-atuacao')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const editId = e.target.dataset.editId;
+        const newMedicoIds = document.getElementById('atuacao-medicos-container').getSelectedIds();
+        const newMembroIds = document.getElementById('atuacao-membros-container').getSelectedIds();
+        
+        const atuacaoData = {
+            membro_ids: newMembroIds, 
+            medico_ids: newMedicoIds,
+            ordem: document.getElementById('atuacao-ordem').value, 
+            tipo: document.getElementById('atuacao-tipo').value,
+            data: document.getElementById('atuacao-data').value, 
+            quantidade: document.getElementById('atuacao-quantidade').value,
+            observacoes: document.getElementById('atuacao-obs').value
+        };
+
+        try {
+            if (editId) {
+                const atuacaoRef = doc(db, 'atuacoes', editId);
+                const docBeforeSnap = await getDoc(atuacaoRef);
+                const dataBefore = docBeforeSnap.data();
+                await updateDoc(atuacaoRef, atuacaoData);
+                await syncAssociations(editId, dataBefore.medico_ids || [], newMedicoIds, 'medicos', 'atuacoes_ids');
+                await syncAssociations(editId, dataBefore.membro_ids || [], newMembroIds, 'membrosclh', 'atuacoes_ids');
+                alert('Atuação atualizada e associações sincronizadas!');
+                window.location.href = `medico.html?id=${currentEditId}`;
+            } else {
+                atuacaoData.criado_em = new Date();
+                const docRef = await addDoc(collection(db, 'atuacoes'), atuacaoData);
+                await syncAssociations(docRef.id, [], newMedicoIds, 'medicos', 'atuacoes_ids');
+                await syncAssociations(docRef.id, [], newMembroIds, 'membrosclh', 'atuacoes_ids');
+                alert('Atuação guardada e associada!');
+                resetAtuacaoForm();
+                if (currentEditId) await initializeActionEditor(currentEditId);
+            }
+        } catch (error) { 
+            console.error("Erro ao guardar atuação: ", error); 
+            alert('Ocorreu um erro ao guardar a atuação.'); 
+        }
+    });
+
+    // ✅ MOVIDO PARA AQUI DENTRO
+    document.getElementById('form-lead')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const editId = e.target.dataset.editId;
+        const newMedicoIds = document.getElementById('lead-medicos-container').getSelectedIds();
+        const newMembroIds = document.getElementById('lead-membros-container').getSelectedIds();
+
+        const leadData = {
+            hospital_id: document.getElementById('lead-hospital-value').value, 
+            data: document.getElementById('lead-data').value,
+            tipo: document.getElementById('lead-tipo').value, 
+            medico_ids: newMedicoIds,
+            membro_ids: newMembroIds,
+            descricao: document.getElementById('lead-descricao').value, 
+            servico_id: document.getElementById('lead-servico').value,
+            status: document.getElementById('lead-status').value, 
+            fechado: document.getElementById('lead-fechado').value,
+        };
+
+        try {
+            if (editId) {
+                const leadRef = doc(db, 'leads', editId);
+                const docBeforeSnap = await getDoc(leadRef);
+                const dataBefore = docBeforeSnap.data();
+                await updateDoc(leadRef, leadData);
+                await syncAssociations(editId, dataBefore.medico_ids || [], newMedicoIds, 'medicos', 'leads_ids');
+                await syncAssociations(editId, dataBefore.membro_ids || [], newMembroIds, 'membrosclh', 'leads_ids');
+                alert('Lead atualizada e associações sincronizadas!');
+                window.location.href = `medico.html?id=${currentEditId}`;
+            } else {
+                leadData.criado_em = new Date();
+                const docRef = await addDoc(collection(db, 'leads'), leadData);
+                await syncAssociations(docRef.id, [], newMedicoIds, 'medicos', 'leads_ids');
+                await syncAssociations(docRef.id, [], newMembroIds, 'membrosclh', 'leads_ids');
+                alert('Lead guardada e associada!');
+                resetLeadForm();
+                if (currentEditId) await initializeActionEditor(currentEditId);
+            }
+        } catch (error) { console.error("Erro ao guardar lead: ", error); alert('Ocorreu um erro.'); }
+    });
+    
+    // ✅ MOVIDO PARA AQUI DENTRO E REMOVIDO O DUPLICADO
+    document.getElementById('form-pedido')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const editId = e.target.dataset.editId;
+        const newMembroIds = document.getElementById('pedido-membros-container').getSelectedIds();
+
+        const pedidoData = {
+            membro_ids: newMembroIds,
+        };
+
+        try {
+            if (editId) {
+                const pedidoRef = doc(db, 'pedidos', editId);
+                const docBeforeSnap = await getDoc(pedidoRef);
+                const dataBefore = docBeforeSnap.data();
+                await updateDoc(pedidoRef, pedidoData);
+                await syncAssociations(editId, dataBefore.membro_ids || [], newMembroIds, 'membrosclh', 'pedidos_ids');
+                alert('Pedido atualizado e associações sincronizadas!');
+            } else {
+                pedidoData.criado_em = new Date();
+                const docRef = await addDoc(collection(db, 'pedidos'), pedidoData);
+                await syncAssociations(docRef.id, [], newMembroIds, 'membrosclh', 'pedidos_ids');
+                alert('Pedido guardado e associado!');
+                e.target.reset();
+                document.getElementById('pedido-membros-container').setSelectedIds([]);
+            }
+        } catch (error) { console.error("Erro ao guardar pedido: ", error); alert('Ocorreu um erro.'); }
+    });
+    
+    handleSimpleCreate('form-servico', 'servicos', 's-nome');
+    handleSimpleCreate('form-clh', 'clh', 'clh-nome');
+    handleSimpleCreate('form-especialidade', 'especialidade', 'esp-nome');
+    handleSimpleCreate('form-congregacao', 'congregacoes', 'cong-nome', () => ({ cidade: document.getElementById('cong-cidade')?.value }));
+
+    // 2. CARREGAR DADOS DA FIREBASE (CACHE)
+    const hospitaisPromise = getDocs(collection(db, 'hospitais')).then(snapshot => 
+        snapshot.docs.map(doc => ({ id: doc.id, nome: doc.data().nome || '' }))
+    );
+    [hospitaisCache, servicosCache, especialidadesCache, membrosCache, clhCache, congregacoesCache, medicosCache] = await Promise.all([
+        hospitaisPromise,
+        populateDataCache('servicos', 'nome'),
+        populateDataCache('especialidade', 'nome'),
+        populateDataCache('membrosclh', 'nome'),
+        populateDataCache('clh', 'nome'),
+        populateDataCache('congregacoes', 'nome'),
+        populateMedicosCache()
+    ]);
+
+    // 3. INICIALIZAR COMPONENTES DINÂMICOS
+    const populateSelect = (selectId, data, prompt) => {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+        select.innerHTML = `<option value="">${prompt}</option>`;
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            option.textContent = item.nome;
+            select.appendChild(option);
+        });
+    };
+    populateSelect('lead-servico', servicosCache, 'Selecione...');
+    populateSelect('m-congregacao', congregacoesCache, 'Selecione uma congregação...');
+    
+    initMultiSearchSelect('d-especialidades-container', especialidadesCache);
+    initMultiSearchSelect('d-sub-especialidades-container', especialidadesCache);
+    initMultiSearchSelect('atuacao-medicos-container', medicosCache);
+    initMultiSearchSelect('lead-medicos-container', medicosCache);
+    initMultiSearchSelect('atuacao-membros-container', membrosCache);
+    initMultiSearchSelect('lead-membros-container', membrosCache);
+    initMultiSearchSelect('pedido-membros-container', membrosCache);
+    initMultiSearchSelect('m-hospitais-container', hospitaisCache);
+    initMultiSearchSelect('h-servicos-container', servicosCache);
+    initMultiSearchSelect('h-responsaveis-container', membrosCache);
+    makeSelectSearchable(document.getElementById('h-clh-searchable-container'), clhCache);
+    makeSelectSearchable(document.getElementById('d-clh-searchable-container'), clhCache);
+    makeSelectSearchable(document.getElementById('d-congregacao-searchable-container'), congregacoesCache);
+    makeSelectSearchable(document.getElementById('lead-hospital-container'), hospitaisCache);
+    
+    // 4. EXECUTAR LÓGICA PRINCIPAL DA PÁGINA
+    const params = new URLSearchParams(window.location.search);
+    currentEditType = params.get('edit');
+    currentEditId = params.get('id');
+
+    if (currentEditType === 'medico_acao' && currentEditId) {
+        const container = document.querySelector('.container');
+        container?.classList.add('action-edit-mode');
+        const abasBloqueadas = ['hospitais', 'servicos', 'clh', 'congregacoes', 'especialidades'];
+        abasBloqueadas.forEach(tabId => {
+            document.querySelector(`.tab-link[data-tab="${tabId}"]`)?.classList.add('locked');
+        });
+        document.querySelector(`.tab-link[data-tab="medicos"]`)?.classList.add('unlocked');
+        document.querySelector(`.tab-link[data-tab="acao"]`)?.classList.add('unlocked');
+        const acaoTab = document.getElementById('tab-acao');
+        if (acaoTab) {
+            acaoTab.querySelectorAll('.edit-list-container').forEach(el => el.classList.remove('hidden'));
+            acaoTab.querySelectorAll('form').forEach(el => el.classList.add('hidden'));
+            acaoTab.querySelectorAll('#btn-show-form-atuacao, #btn-show-form-lead').forEach(el => el.classList.remove('hidden'));
+        }
+        setupFormToggle('form-atuacao', 'btn-show-form-atuacao', 'btn-cancel-atuacao', resetAtuacaoForm);
+        setupFormToggle('form-lead', 'btn-show-form-lead', 'btn-cancel-lead', resetLeadForm);
+        await loadAndPopulateMedicoForm(currentEditId);
+        document.getElementById('atuacao-medicos-container')?.setSelectedIds([currentEditId]);
+        document.getElementById('lead-medicos-container')?.setSelectedIds([currentEditId]);
+        switchToTab('acao');
+        await initializeActionEditor(currentEditId);
+    } 
+    else if (currentEditType === 'membro' && currentEditId) {
+        const container = document.querySelector('.container');
+        container?.classList.add('edit-mode');
+        switchToTab('membros');
+        await loadAndPopulateMembroForm(currentEditId);
+    } 
+    else if (currentEditType === 'medico' && currentEditId) {
+        const container = document.querySelector('.container');
+        container?.classList.add('edit-mode');
+        switchToTab('medicos');
+        await loadAndPopulateMedicoForm(currentEditId);
+    } 
+    else if (currentEditType === 'hospital' && currentEditId) {
+        const container = document.querySelector('.container');
+        container?.classList.add('edit-mode');
+        switchToTab('hospitais');
+        await loadAndPopulateHospitalForm(currentEditId);
+    }
+});
+</script>
+</body>
+</html>
