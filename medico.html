@@ -323,17 +323,62 @@
             </div>`).join('');
     }
 
-    function renderInfoPessoais(data, maps) {
-        const na = '<span style="color: var(--text-color-muted);">N/A</span>';
-        const especialidadesStr = (data.especialidade_ids || []).map(id => maps.especialidadesMap.get(id) || 'N/A').join(', ') || na;
-        const subEspecialidadesStr = (data.sub_especialidade_ids || []).map(id => maps.especialidadesMap.get(id) || 'N/A').join(', ') || na;
-        const posicoesHtml = (data.posicoes || []).map(p => {
-            const horarioStr = p.horario && typeof p.horario === 'object' ? `${p.horario.dia || ''} - ${p.horario.parte || ''}` : (p.horario || na);
-            return `<dt>${maps.hospitaisMap.get(p.hospital_id) || 'Hospital desconhecido'}</dt><dd><b>Cargo:</b> ${p.cargo || na}<br><b>Serviço:</b> ${maps.servicosMap.get(p.servico_id) || na}<br><b>Horário:</b> ${horarioStr}</dd>`;
-        }).join('') || `<dt>Nenhuma</dt><dd></dd>`;
-        const linksHtml = (data.links || []).sort((a, b) => new Date(b.data_adicionado) - new Date(a.data_adicionado)).map(link => `<tr><td><a href="${link.url}" target="_blank" rel="noopener noreferrer">${link.url}</a></td><td>${formatDate(link.data_adicionado)}</td></tr>`).join('');
-        return `<div class="info-section"><h3>Informações Gerais</h3><dl class="info-grid"><dt>Nome Completo</dt><dd>${data.nome_completo || data.nome || na}</dd><dt>Cédula Profissional</dt><dd>${data.cedula || na}</dd><dt>Email(s)</dt><dd>${(data.emails || []).join(', ') || na}</dd><dt>Telemóveis</dt><dd>${(data.telemoveis || []).join(', ') || na}</dd><dt>Morada</dt><dd>${data.morada || na}</dd></dl></div><div class="info-section"><h3>Informações Profissionais</h3><dl class="info-grid"><dt>Especialidade(s)</dt><dd>${especialidadesStr}</dd><dt>Sub-especialidade(s)</dt><dd>${subEspecialidadesStr}</dd></dl></div><div class="info-section"><h3>Hospitais e Serviços</h3><dl class="info-grid">${posicoesHtml}</dl></div><div class="info-section"><h3>Estado</h3><dl class="info-grid"><dt>Situação Consultor</dt><dd>${data.consultor_situacao || na}</dd><dt>Situação Cooperador</dt><dd>${data.cooperador_situacao || na}</dd><dt>CLH</dt><dd>${maps.clhMap.get(data.clh_id) || na}</dd><dt>Classificação</dt><dd>${data.classificacao || na}</dd><dt>Recebe Mailings DIH</dt><dd>${data.recebe_mailings_dih ? 'Sim' : 'Não'}</dd><dt>Responsabilidade Mailing</dt><dd>${data.responsabilidade_clh_mailing || na}</dd></dl></div><div class="info-section"><h3>Links</h3>${linksHtml ? `<table class="links-table"><thead><tr><th>URL</th><th>Data Adicionado</th></tr></thead><tbody>${linksHtml}</tbody></table>` : '<p>Nenhum link registado.</p>'}</div>`;
+function renderInfoPessoais(data, maps) {
+    const na = '<span style="color: var(--text-color-muted);">N/A</span>';
+    const especialidadesStr = (data.especialidade_ids || []).map(id => maps.especialidadesMap.get(id) || 'N/A').join(', ') || na;
+    const subEspecialidadesStr = (data.sub_especialidade_ids || []).map(id => maps.especialidadesMap.get(id) || 'N/A').join(', ') || na;
+    const posicoesHtml = (data.posicoes || []).map(p => {
+        const horarioStr = p.horario && typeof p.horario === 'object' ? `${p.horario.dia || ''} - ${p.horario.parte || ''}` : (p.horario || na);
+        return `<dt>${maps.hospitaisMap.get(p.hospital_id) || 'Hospital desconhecido'}</dt><dd><b>Cargo:</b> ${p.cargo || na}<br><b>Serviço:</b> ${maps.servicosMap.get(p.servico_id) || na}<br><b>Horário:</b> ${horarioStr}</dd>`;
+    }).join('') || `<dt>Nenhuma</dt><dd></dd>`;
+    const linksHtml = (data.links || []).sort((a, b) => new Date(b.data_adicionado) - new Date(a.data_adicionado)).map(link => `<tr><td><a href="${link.url}" target="_blank" rel="noopener noreferrer">${link.url}</a></td><td>${formatDate(link.data_adicionado)}</td></tr>`).join('');
+
+    // Lógica para processar o array de moradas
+    let moradasHtml = na;
+    if (data.moradas && data.moradas.length > 0) {
+        moradasHtml = data.moradas
+            .filter(m => m.rua)
+            .map(m => m.obs ? `<strong>${m.obs}:</strong> ${m.rua}` : m.rua)
+            .join('<br>');
     }
+
+    // --- ALTERADO: Lógica de formatação de emails ---
+    const emailsHtml = (data.emails && data.emails.length > 0) 
+        ? data.emails
+            .map((email, index) => `<strong>Email ${index + 1}:</strong> ${email}`)
+            .join('<br>') 
+        : na;
+
+    // Lógica para formatar telemóveis (mantém-se igual)
+    const telemoveisHtml = (data.telemoveis && data.telemoveis.length > 0)
+        ? data.telemoveis
+            .map((tel, index) => `<strong>Contacto ${index + 1}:</strong> ${tel}`)
+            .join('<br>')
+        : na;
+
+    // O return agora usa todas as variáveis formatadas
+    return `<div class="info-section"><h3>Informações Gerais</h3><dl class="info-grid">
+                <dt>Nome Completo</dt><dd>${data.nome_completo || data.nome || na}</dd>
+                <dt>Cédula Profissional</dt><dd>${data.cedula || na}</dd>
+                <dt>Email(s)</dt><dd>${emailsHtml}</dd>
+                <dt>Contacto(s)</dt><dd>${telemoveisHtml}</dd>
+                <dt>Morada(s)</dt><dd>${moradasHtml}</dd>
+            </dl></div><div class="info-section"><h3>Informações Profissionais</h3><dl class="info-grid">
+                <dt>Especialidade(s)</dt><dd>${especialidadesStr}</dd>
+                <dt>Sub-especialidade(s)</dt><dd>${subEspecialidadesStr}</dd>
+            </dl></div><div class="info-section"><h3>Hospitais e Serviços</h3><dl class="info-grid">
+                ${posicoesHtml}
+            </dl></div><div class="info-section"><h3>Estado</h3><dl class="info-grid">
+                <dt>Situação Consultor</dt><dd>${data.consultor_situacao || na}</dd>
+                <dt>Situação Cooperador</dt><dd>${data.cooperador_situacao || na}</dd>
+                <dt>CLH</dt><dd>${maps.clhMap.get(data.clh_id) || na}</dd>
+                <dt>Classificação</dt><dd>${data.classificação || na}</dd>
+                <dt>Recebe Mailings DIH</dt><dd>${data.recebe_mailings_dih ? 'Sim' : 'Não'}</dd>
+                <dt>Responsabilidade Mailing</dt><dd>${data.responsabilidade_clh_mailing || na}</dd>
+            </dl></div><div class="info-section"><h3>Links</h3>
+                ${linksHtml ? `<table class="links-table"><thead><tr><th>URL</th><th>Data Adicionado</th></tr></thead><tbody>${linksHtml}</tbody></table>` : '<p>Nenhum link registado.</p>'}
+            </div>`;
+}
 
     // --- Ponto de Entrada ---
     document.addEventListener('DOMContentLoaded', () => {
