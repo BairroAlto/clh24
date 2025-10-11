@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lista de Membros CLH</title>
+
+    <!-- Link para a biblioteca de ícones Font Awesome (para o menu) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <style>
         :root {
             --primary-color: #0d6efd;
@@ -18,188 +22,213 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 20px; }
         .container { max-width: 1400px; margin: auto; background: var(--surface-color); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
         h1 { color: #fff; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border-color); }
-        th { background-color: #343a40; font-size: 1.1em; }
-        tr:nth-of-type(even) { background-color: #2c3034; }
-        tr:hover { background-color: #3a4045; }
         .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 600; text-decoration: none; display: inline-block; margin-right: 5px; }
         .btn-view { background-color: var(--blue-view); color: #000; }
         .btn-edit { background-color: var(--yellow-edit); color: #000; }
         .search-container { margin-bottom: 20px; }
         #search-input { width: 300px; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1em; background-color: var(--background-color); color: var(--text-color); }
-        th[data-column] { cursor: pointer; position: relative; }
-        th[data-column]::after { content: ' \2195'; opacity: 0.4; position: absolute; right: 10px; }
-        th.sort-asc::after { content: ' \2191'; opacity: 1; }
-        th.sort-desc::after { content: ' \2193'; opacity: 1; }
+        
+        #members-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
 
-        /* --- MODIFICAÇÃO 1: Estilos para o link do nome do membro --- */
-        .name-link {
-            color: inherit; /* Herda a cor do texto do pai (td) */
-            text-decoration: none; /* Remove o sublinhado padrão */
+        .member-card {
+            background-color: #343a40;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: background-color 0.3s;
         }
-        .name-link:hover {
-            text-decoration: underline; /* Adiciona sublinhado ao passar o rato */
+
+        .card-summary {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            cursor: pointer;
+            position: relative;
         }
+        
+        .card-summary:hover {
+            background-color: #3a4045;
+        }
+
+        .card-info { flex-grow: 1; }
+        .card-info .member-name { font-size: 1.2em; font-weight: 600; margin: 0; color: #fff; }
+        .card-info .member-subtitle { font-size: 0.9em; margin: 4px 0 0; color: var(--secondary-color); }
+
+        .card-summary::after {
+            content: '▾'; font-size: 1.5em; transition: transform 0.3s ease; margin-left: 15px;
+        }
+        .member-card.expanded .card-summary::after { transform: rotate(180deg); }
+
+        .card-details {
+            max-height: 0; overflow: hidden;
+            transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+            display: flex; gap: 20px;
+            border-top: 1px solid var(--border-color); padding: 0 20px;
+        }
+        
+        .member-card.expanded .card-details { max-height: 500px; padding: 20px; }
+
+        .details-left { flex: 0 0 120px; text-align: center; }
+        .details-left .member-photo {
+            width: 100px; height: 100px; border-radius: 50%; object-fit: cover;
+            border: 2px solid var(--border-color); margin-bottom: 15px;
+            background-color: var(--background-color);
+        }
+        .details-right { flex: 1; }
+        .detail-item { margin: 0 0 12px 0; font-size: 0.95em; }
+        .detail-item strong { color: var(--secondary-color); display: block; margin-bottom: 4px; }
+        .detail-item span { word-break: break-word; }
     </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Lista de Membros CLH</h1>
-    
-    <div class="search-container">
-        <input type="text" id="search-input" placeholder="Pesquisar em toda a tabela...">
+    <div class="container">
+        <h1>Lista de Membros CLH</h1>
+        
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Pesquisar membros...">
+        </div>
+
+        <div id="members-list">
+            <p style="text-align: center;">A carregar membros...</p>
+        </div>
     </div>
 
-    <div style="overflow-x:auto;">
-         <table>
-            <thead>
-                <tr>
-                    <th data-column="nome">Nome</th>
-                    <th data-column="congregacao_id">Congregação</th>
-                    <th data-column="grupos">Grupo</th>
-                    <th data-column="telemoveis">Contato</th>
-                    <th data-column="hospitais_responsabilidade_ids">Hospitais Responsável</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody id="members-table-body">
-                <tr><td colspan="6" style="text-align: center;">A carregar membros...</td></tr>
-            </tbody>
-        </table>
-    </div>
-</div>
+    <!-- Placeholder onde o menu será carregado -->
+    <div id="bottom-menu-placeholder"></div>
 
     <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
-    authDomain: "medical-5baa0.firebaseapp.com",
-    projectId: "medical-5baa0",
-    storageBucket: "medical-5baa0.appspot.com",
-    messagingSenderId: "900547659131",
-    appId: "1:900547659131:web:708f90f8fa1500d76569de"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
+            authDomain: "medical-5baa0.firebaseapp.com",
+            projectId: "medical-5baa0",
+            storageBucket: "medical-5baa0.appspot.com",
+            messagingSenderId: "900547659131",
+            appId: "1:900547659131:web:708f90f8fa1500d76569de"
+        };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-let allMembersData = [];
-let currentSort = { column: 'nome', direction: 'asc' };
+        let allMembersData = [];
 
-const tableBody = document.getElementById('members-table-body');
-const searchInput = document.getElementById('search-input');
+        const membersListContainer = document.getElementById('members-list');
+        const searchInput = document.getElementById('search-input');
 
-function renderTable(dataToRender) {
-    if (dataToRender.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Nenhum membro corresponde à pesquisa.</td></tr>';
-        return;
-    }
+        function renderCards(dataToRender) {
+            if (dataToRender.length === 0) {
+                membersListContainer.innerHTML = '<p style="text-align: center;">Nenhum membro corresponde à pesquisa.</p>';
+                return;
+            }
 
-    const rowsHtml = dataToRender.map(member => `
-        <tr>
-            <!-- --- MODIFICAÇÃO 2: Nome do membro agora é um link --- -->
-            <td><a href="membro.html?id=${member.id}" class="name-link">${member.nome || ''}</a></td>
-            <td>${member.congregationName}</td>
-            <td>${member.groups}</td>
-            <td>${member.contacts}</td>
-            <td>${member.hospitalNames}</td>
-            <td>
-                <a href="membro.html?id=${member.id}" class="btn btn-view">Ver</a>
-                <a href="master.html?edit=membro&id=${member.id}" class="btn btn-edit">Editar</a>
-            </td>
-        </tr>
-    `).join('');
-    tableBody.innerHTML = rowsHtml;
-}
+            const cardsHtml = dataToRender.map(member => {
+                const defaultImage = 'https://via.placeholder.com/100';
+                const subtitle = `${member.groups} | ${member.congregationName}`;
 
-async function loadAndPrepareData() {
-    tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">A carregar membros...</td></tr>';
-    try {
-        const [congregationsSnap, hospitalsSnap, membersSnap] = await Promise.all([
-            getDocs(collection(db, "congregacoes")),
-            getDocs(collection(db, "hospitais")),
-            getDocs(collection(db, "membrosclh"))
-        ]);
-
-        const congregationsMap = new Map(congregationsSnap.docs.map(doc => [doc.id, doc.data().nome]));
-        const hospitalsMap = new Map(hospitalsSnap.docs.map(doc => [doc.id, doc.data().nome]));
-
-        if (membersSnap.empty) {
-            tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Nenhum membro encontrado.</td></tr>';
-            return;
+                return `
+                <div class="member-card" data-id="${member.id}">
+                    <div class="card-summary">
+                        <div class="card-info">
+                            <h3 class="member-name">${member.nome}</h3>
+                            <p class="member-subtitle">${subtitle}</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <div class="details-left">
+                            <img src="${member.foto_url || defaultImage}" alt="Foto de ${member.nome}" class="member-photo" onerror="this.onerror=null;this.src='${defaultImage}';">
+                            <a href="membro.html?id=${member.id}" class="btn btn-view">Ver Mais</a>
+                        </div>
+                        <div class="details-right">
+                            <p class="detail-item"><strong>Contatos (Tlm):</strong> <span>${member.contacts || 'N/A'}</span></p>
+                            <p class="detail-item"><strong>Emails:</strong> <span>${member.emails || 'N/A'}</span></p>
+                            <p class="detail-item"><strong>Hospitais Responsável:</strong> <span>${member.hospitalNames || 'Nenhum'}</span></p>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            membersListContainer.innerHTML = cardsHtml;
         }
 
-        allMembersData = membersSnap.docs.map(memberDoc => {
-            const member = memberDoc.data();
-            return {
-                id: memberDoc.id,
-                nome: member.nome || '',
-                congregationName: congregationsMap.get(member.congregacao_id) || 'N/A',
-                groups: (member.grupos || []).map(g => g.tipo).join(', ') || 'Nenhum',
-                contacts: (member.telemoveis || []).join(', ') || 'Nenhum',
-                hospitalNames: (member.hospitais_responsabilidade_ids || []).map(id => hospitalsMap.get(id) || 'Desconhecido').join('<br>') || 'Nenhum',
-                congregacao_id: member.congregacao_id,
-                grupos_raw: member.grupos,
-                telemoveis: member.telemoveis,
-                hospitais_responsabilidade_ids: member.hospitais_responsabilidade_ids,
-            };
+        async function loadAndPrepareData() {
+            membersListContainer.innerHTML = '<p style="text-align: center;">A carregar membros...</p>';
+            try {
+                const [congregationsSnap, hospitalsSnap, membersSnap] = await Promise.all([
+                    getDocs(collection(db, "congregacoes")),
+                    getDocs(collection(db, "hospitais")),
+                    getDocs(collection(db, "membrosclh"))
+                ]);
+
+                const congregationsMap = new Map(congregationsSnap.docs.map(doc => [doc.id, doc.data().nome]));
+                const hospitalsMap = new Map(hospitaisSnap.docs.map(doc => [doc.id, doc.data().nome]));
+
+                if (membersSnap.empty) {
+                    membersListContainer.innerHTML = '<p style="text-align: center;">Nenhum membro encontrado.</p>';
+                    return;
+                }
+
+                allMembersData = membersSnap.docs.map(memberDoc => {
+                    const member = memberDoc.data();
+                    return {
+                        id: memberDoc.id,
+                        nome: member.nome || '',
+                        congregationName: congregationsMap.get(member.congregacao_id) || 'N/A',
+                        groups: (member.grupos || []).map(g => g.tipo).join(', ') || 'Nenhum',
+                        contacts: (member.telemoveis || []).join('<br>') || 'N/A',
+                        emails: (member.emails || []).join('<br>') || 'N/A',
+                        hospitalNames: (member.hospitais_responsabilidade_ids || []).map(id => hospitalsMap.get(id) || 'Desconhecido').join('<br>') || 'Nenhum',
+                        foto_url: member.foto_url || null,
+                    };
+                });
+
+                filterAndSortAndRender();
+            } catch (error) {
+                console.error("Erro ao carregar membros:", error);
+                membersListContainer.innerHTML = '<p style="text-align: center;">Ocorreu um erro ao carregar os dados.</p>';
+            }
+        }
+
+        function filterAndSortAndRender() {
+            const searchTerm = searchInput.value.toLowerCase();
+
+            let filteredData = allMembersData.filter(member => {
+                if (!searchTerm) return true;
+                return (
+                    member.nome.toLowerCase().includes(searchTerm) ||
+                    member.congregationName.toLowerCase().includes(searchTerm) ||
+                    member.groups.toLowerCase().includes(searchTerm) ||
+                    member.contacts.replace('<br>', ' ').toLowerCase().includes(searchTerm) ||
+                    member.hospitalNames.replace('<br>', ' ').toLowerCase().includes(searchTerm)
+                );
+            });
+
+            filteredData.sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
+            
+            renderCards(filteredData);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAndPrepareData();
+
+            searchInput.addEventListener('input', filterAndSortAndRender);
+
+            membersListContainer.addEventListener('click', e => {
+                const summary = e.target.closest('.card-summary');
+                if (e.target.closest('a')) return;
+                if (summary) {
+                    summary.closest('.member-card').classList.toggle('expanded');
+                }
+            });
         });
-
-        filterAndSortAndRender();
-    } catch (error) {
-        console.error("Erro ao carregar membros:", error);
-        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Ocorreu um erro ao carregar os dados.</td></tr>';
-    }
-}
-
-function filterAndSortAndRender() {
-    const searchTerm = searchInput.value.toLowerCase();
-
-    let filteredData = allMembersData.filter(member => {
-        return (
-            member.nome.toLowerCase().includes(searchTerm) ||
-            member.congregationName.toLowerCase().includes(searchTerm) ||
-            member.groups.toLowerCase().includes(searchTerm) ||
-            member.contacts.toLowerCase().includes(searchTerm) ||
-            member.hospitalNames.toLowerCase().replace('<br>', ' ').includes(searchTerm)
-        );
-    });
-
-    filteredData.sort((a, b) => {
-        const valA = a[currentSort.column] || '';
-        const valB = b[currentSort.column] || '';
-        
-        const comparison = valA.toString().localeCompare(valB.toString(), undefined, { numeric: true });
-        
-        return currentSort.direction === 'asc' ? comparison : -comparison;
-    });
-    
-    renderTable(filteredData);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    loadAndPrepareData();
-
-    searchInput.addEventListener('input', filterAndSortAndRender);
-
-    document.querySelector('thead').addEventListener('click', e => {
-        const header = e.target.closest('th[data-column]');
-        if (!header) return;
-
-        const column = header.dataset.column;
-        const direction = (currentSort.column === column && currentSort.direction === 'asc') ? 'desc' : 'asc';
-        
-        currentSort = { column, direction };
-
-        document.querySelectorAll('th[data-column]').forEach(th => th.classList.remove('sort-asc', 'sort-desc'));
-        header.classList.add(`sort-${direction}`);
-
-        filterAndSortAndRender();
-    });
-});
     </script>
+
+    <!-- Script que carrega e ativa o menu -->
+    <script src="menu-loader.js"></script>
 </body>
 </html>
