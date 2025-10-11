@@ -159,14 +159,22 @@
         async function loadAndPrepareData() {
             membersListContainer.innerHTML = '<p style="text-align: center;">A carregar membros...</p>';
             try {
-                const [congregationsSnap, hospitalsSnap, membersSnap] = await Promise.all([
-                    getDocs(collection(db, "congregacoes")),
-                    getDocs(collection(db, "hospitais")),
-                    getDocs(collection(db, "membrosclh"))
-                ]);
+                // --- MUDANÇA PRINCIPAL: Carregar dados sequencialmente para depuração ---
+                console.log("Passo 1: A carregar congregações...");
+                const congregationsSnap = await getDocs(collection(db, "congregacoes"));
+                console.log("=> Sucesso: Congregações carregadas.");
 
+                console.log("Passo 2: A carregar hospitais...");
+                const hospitalsSnap = await getDocs(collection(db, "hospitais")); // <== O ERRO PROVAVELMENTE ACONTECE AQUI
+                console.log("=> Sucesso: Hospitais carregados.");
+
+                console.log("Passo 3: A carregar membros...");
+                const membersSnap = await getDocs(collection(db, "membrosclh"));
+                console.log("=> Sucesso: Membros carregados.");
+                
+                // O resto da lógica é igual
                 const congregationsMap = new Map(congregationsSnap.docs.map(doc => [doc.id, doc.data().nome]));
-                const hospitalsMap = new Map(hospitaisSnap.docs.map(doc => [doc.id, doc.data().nome]));
+                const hospitalsMap = new Map(hospitalsSnap.docs.map(doc => [doc.id, doc.data().nome]));
 
                 if (membersSnap.empty) {
                     membersListContainer.innerHTML = '<p style="text-align: center;">Nenhum membro encontrado.</p>';
@@ -188,9 +196,18 @@
                 });
 
                 filterAndSortAndRender();
+
             } catch (error) {
-                console.error("Erro ao carregar membros:", error);
-                membersListContainer.innerHTML = '<p style="text-align: center;">Ocorreu um erro ao carregar os dados.</p>';
+                // O bloco de erro continua útil para identificar a causa final
+                console.error("ERRO DETALHADO:", error);
+
+                let friendlyMessage = `Ocorreu um erro ao carregar os dados. Verifique a consola (F12) para a causa específica.`;
+
+                if (error.code === 'permission-denied') {
+                    friendlyMessage = '<b>ERRO DE PERMISSÃO.</b> A leitura da base de dados foi bloqueada pelas Regras de Segurança (Security Rules) do Firestore. Permita a leitura pública para testar.';
+                }
+
+                membersListContainer.innerHTML = `<p style="text-align: center; color: #ffc107;">${friendlyMessage}</p>`;
             }
         }
 
