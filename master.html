@@ -160,7 +160,10 @@
     .multi-search-select-pill .remove-pill { margin-left: 8px; cursor: pointer; font-weight: bold; }
     .multi-search-select-input { flex-grow: 1; border: none; background: none; color: var(--text-color); padding: 5px; min-width: 150px; font-size: 1em; }
     .multi-search-select-input:focus { outline: none; }
-    .multi-search-select-dropdown { display: none; position: absolute; background-color: var(--surface-color); border: 1px solid var(--border-color); border-top: none; z-index: 1001; width: 100%; max-height: 200px; overflow-y: auto; border-radius: 0 0 4px 4px; }
+    .multi-search-select-dropdown {
+        display: none; position: absolute; background-color: var(--surface-color); border: 1px solid var(--border-color);
+        border-top: none; z-index: 1001; width: 100%; max-height: 200px; overflow-y: auto; border-radius: 0 0 4px 4px;
+    }
     .multi-search-select-item { position: relative; display: flex; align-items: center; padding: 10px; cursor: pointer; justify-content: flex-start; }
     .multi-search-select-item label { margin-bottom: 0; cursor: pointer; flex-grow: 1; padding-left: 30px; position: relative; user-select: none; }
     .multi-search-select-item input[type="checkbox"] { position: absolute; opacity: 0; cursor: pointer; height: 0; width: 0; }
@@ -216,6 +219,7 @@
             <button class="tab-link active" data-tab="hospitais">Hospitais</button>
             <button class="tab-link" data-tab="membros">Membros CLH</button>
             <button class="tab-link" data-tab="medicos">Médicos</button>
+            <button class="tab-link" data-tab="pacientes">Pacientes</button>
             <button class="tab-link" data-tab="servicos">Serviços</button>
             <button class="tab-link" data-tab="clh">CLH</button>
             <button class="tab-link" data-tab="congregacoes">Congregações</button>
@@ -406,7 +410,6 @@
 
     <div class="form-group" style="margin-top: 20px;">
         <label>Morada (Opcional)</label>
-        <!-- O container fica vazio; o JS vai adicionar os 2 campos iniciais -->
         <div id="d-moradas-list" class="dynamic-list"></div>
         <button type="button" class="btn btn-add btn-sm" onclick="addMoradaInput()">Adicionar Outra</button>
     </div>
@@ -449,6 +452,41 @@
     </form>
 </div>
 
+        <!-- ABA PACIENTES -->
+        <div id="tab-pacientes" class="tab-content">
+            <h2>Criar Novo Paciente</h2>
+            <form id="form-paciente">
+                <fieldset>
+                    <legend>Identificação</legend>
+                    <div class="form-row cols-3">
+                        <div class="form-group"><label for="p-nome">Nome</label><input type="text" id="p-nome" required></div>
+                        <div class="form-group"><label for="p-nome-completo">Nome Completo (Opcional)</label><input type="text" id="p-nome-completo"></div>
+                        <div class="form-group"><label for="p-genero">Género</label><select id="p-genero"><option value="masculino">Masculino</option><option value="feminino">Feminino</option></select></div>
+                    </div>
+                    <div class="form-group" style="margin-top: 20px;"><label for="p-congregacao">Congregação (Opcional)</label><select id="p-congregacao"><option>A carregar...</option></select></div>
+                </fieldset>
+                <fieldset>
+                    <legend>Contactos (Opcional)</legend>
+                    <div class="form-row cols-2">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" class="initial-input" placeholder="exemplo@email.com">
+                            <div id="p-emails-list" class="dynamic-list" style="margin-top:10px"></div>
+                            <button type="button" class="btn btn-add btn-sm" onclick="addDynamicInput('p-emails-list', 'email', 'exemplo@email.com')">Adicionar Outro</button>
+                        </div>
+                        <div class="form-group">
+                            <label>Telemóvel</label>
+                            <input type="tel" class="initial-input" placeholder="912345678">
+                            <div id="p-telemoveis-list" class="dynamic-list" style="margin-top:10px"></div>
+                            <button type="button" class="btn btn-add btn-sm" onclick="addDynamicInput('p-telemoveis-list', 'tel', '912345678')">Adicionar Outro</button>
+                        </div>
+                    </div>
+                </fieldset>
+                <button type="submit" class="btn btn-submit">Guardar Paciente</button>
+            </form>
+        </div>
+
+
         <!-- ABA SERVIÇOS -->
         <div id="tab-servicos" class="tab-content"><form id="form-servico"><fieldset><legend>Detalhes do Serviço</legend><div class="form-group"><label for="s-nome">Nome do Serviço</label><input type="text" id="s-nome" required></div></fieldset><button type="submit" class="btn btn-submit">Guardar Serviço</button></form></div>
         <!-- ABA CLH -->
@@ -479,6 +517,7 @@
                         <div class="form-group"><label for="atuacao-membros-search">Membros</label><div id="atuacao-membros-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-membros-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
                         <div class="form-row cols-2" style="margin-top:20px;"><div class="form-group"><label for="atuacao-ordem">Nº Ordem</label><input type="text" id="atuacao-ordem"></div><div class="form-group"><label for="atuacao-tipo">Tipo</label><select id="atuacao-tipo"><option value="">Selecione...</option><option>Actuação</option><option>Apresentação</option></select></div><div class="form-group"><label for="atuacao-data">Data</label><input type="date" id="atuacao-data"></div><div class="form-group"><label for="atuacao-quantidade">Quantidade</label><input type="number" id="atuacao-quantidade"></div></div>
                         <div class="form-group" style="margin-top:20px;"><label for="atuacao-medicos-search">Médico(s)</label><div id="atuacao-medicos-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-medicos-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
+                        <div class="form-group" style="margin-top:20px;"><label for="atuacao-pacientes-search">Paciente(s)</label><div id="atuacao-pacientes-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-pacientes-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
                         <div class="form-group" style="margin-top:20px;"><label for="atuacao-obs">Observações</label><textarea id="atuacao-obs"></textarea></div>
                     </fieldset>
                     <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Atuação</button><button type="button" id="btn-cancel-atuacao" class="btn btn-cancel hidden">Cancelar Edição</button></div>
@@ -544,7 +583,6 @@
                 <form id="form-pedido" data-edit-id=""><fieldset>
                   <legend>Criar / Editar Pedido</legend>
 
-        <!-- ADICIONE ESTE CAMPO -->
         <div class="form-group">
             <label for="pedido-membros-search">Membro(s)</label>
             <div id="pedido-membros-container" class="multi-search-select-container">
@@ -601,7 +639,8 @@ let especialidadesCache = [];
 let membrosCache = [];
 let clhCache = [];
 let congregacoesCache = [];
-let medicosCache = []; 
+let medicosCache = [];
+let pacientesCache = [];
 
 // --- DEFINIÇÕES DE FUNÇÕES AUXILIARES ---
 
@@ -616,50 +655,33 @@ async function populateDataCache(collectionName, fieldName) {
 }
 
 async function syncAssociations(docId, oldAssociatedIds, newAssociatedIds, collectionName, fieldToUpdate) {
-    console.log(`[syncAssociations] Iniciando para a coleção '${collectionName}', campo '${fieldToUpdate}'`);
-    
     const oldIds = new Set(oldAssociatedIds);
     const newIds = new Set(newAssociatedIds);
 
     const toAdd = [...newIds].filter(id => !oldIds.has(id));
     const toRemove = [...oldIds].filter(id => !newIds.has(id));
 
-    // LOG 4: Mostrar o que vai ser efetivamente alterado
-    console.log("[syncAssociations] IDs a ADICIONAR:", toAdd);
-    console.log("[syncAssociations] IDs a REMOVER:", toRemove);
-
     if (toAdd.length === 0 && toRemove.length === 0) {
-        console.log("[syncAssociations] Nenhuma alteração necessária. Finalizando.");
-        return; // Sai da função se não houver nada a fazer
+        return;
     }
 
     const promises = [];
     toAdd.forEach(id => {
-        console.log(`[syncAssociations] Preparando para ADICIONAR o ID '${docId}' ao documento '${id}'`);
         const docRef = doc(db, collectionName, id);
         promises.push(updateDoc(docRef, { [fieldToUpdate]: arrayUnion(docId) }));
     });
     toRemove.forEach(id => {
-        console.log(`[syncAssociations] Preparando para REMOVER o ID '${docId}' do documento '${id}'`);
         const docRef = doc(db, collectionName, id);
         promises.push(updateDoc(docRef, { [fieldToUpdate]: arrayRemove(docId) }));
     });
 
     try {
         await Promise.all(promises);
-        console.log("[syncAssociations] Todas as operações de atualização foram concluídas com sucesso.");
     } catch (error) {
-        // LOG DE ERRO DENTRO DA FUNÇÃO
-        console.error(`[syncAssociations] ERRO ao executar as atualizações para a coleção '${collectionName}':`, error);
-        // Lançar o erro para que o 'catch' principal o apanhe
+        console.error(`ERRO ao executar as atualizações para a coleção '${collectionName}':`, error);
         throw error;
     }
 }
-
-
-
-
-
 
 async function populateMedicosCache() {
     try {
@@ -674,16 +696,6 @@ async function populateMedicosCache() {
         return [];
     }
 }
-
-
-
-
-
-
-
-
-
-
 
 function getDynamicInputValues(containerId) {
     return Array.from(document.querySelectorAll(`#${containerId} .dynamic-input`)).map(input => input.value.trim()).filter(Boolean);
@@ -798,7 +810,6 @@ window.addMoradaInput = function(morada = {}) {
     const div = document.createElement('div');
     div.className = 'input-group';
 
-    // ALTERADO: Ordem dos inputs invertida
     div.innerHTML = `
         <input type="text" class="d-morada-rua" placeholder="Morada" style="flex-grow: 2;" value="${morada.rua || ''}">
         <input type="text" class="d-morada-obs" placeholder="Obs. Morada" style="flex-grow: 1;" value="${morada.obs || ''}">
@@ -806,8 +817,6 @@ window.addMoradaInput = function(morada = {}) {
     `;
     container.appendChild(div);
 };
-
-
 
 function initMultiSearchSelect(containerId, dataCache) {
     const container = document.getElementById(containerId);
@@ -823,6 +832,12 @@ function initMultiSearchSelect(containerId, dataCache) {
             (item.nome_completo && item.nome_completo.toLowerCase().includes(lowerFilter))
         );
         dropdown.innerHTML = filteredData.map(item => `<div class="multi-search-select-item"><input type="checkbox" id="ms-${containerId}-${item.id}" data-id="${item.id}" data-name="${item.nome}" ${selectedIds.has(item.id) ? 'checked' : ''}><label for="ms-${containerId}-${item.id}">${item.nome}</label></div>`).join('');
+        
+        if (filteredData.length > 0) {
+            dropdown.style.display = 'block';
+        } else {
+            dropdown.style.display = 'none';
+        }
     };
     const addPill = (id, name) => {
         if (pillsContainer.querySelector(`.multi-search-select-pill[data-id="${id}"]`)) return;
@@ -836,7 +851,7 @@ function initMultiSearchSelect(containerId, dataCache) {
         const pill = pillsContainer.querySelector(`.multi-search-select-pill[data-id="${id}"]`);
         if (pill) pill.remove();
     };
-    searchInput.addEventListener('focus', () => { renderDropdown(searchInput.value); dropdown.style.display = 'block'; });
+    searchInput.addEventListener('focus', () => renderDropdown(searchInput.value));
     searchInput.addEventListener('input', () => renderDropdown(searchInput.value));
     dropdown.addEventListener('change', e => {
         if (e.target.type === 'checkbox') {
@@ -975,6 +990,7 @@ function populateAtuacaoForm(data, id) {
     document.getElementById('btn-cancel-atuacao').classList.remove('hidden');
     document.getElementById('atuacao-membros-container').setSelectedIds(data.membro_ids || []);
     document.getElementById('atuacao-medicos-container').setSelectedIds(data.medico_ids || []);
+    document.getElementById('atuacao-pacientes-container').setSelectedIds(data.paciente_ids || []);
     document.getElementById('atuacao-ordem').value = data.ordem || '';
     document.getElementById('atuacao-tipo').value = data.tipo || '';
     document.getElementById('atuacao-data').value = data.data || '';
@@ -993,6 +1009,7 @@ function resetAtuacaoForm() {
     document.getElementById('btn-cancel-atuacao').classList.add('hidden');
     document.getElementById('atuacao-membros-container').setSelectedIds([]);
     document.getElementById('atuacao-medicos-container').setSelectedIds(currentEditId ? [currentEditId] : []);
+    document.getElementById('atuacao-pacientes-container').setSelectedIds([]);
     document.querySelectorAll('#atuacoes-list .toggle-list-item.active').forEach(el => el.classList.remove('active'));
     if (currentEditType === 'medico_acao') {
         form.classList.add('hidden');
@@ -1092,13 +1109,11 @@ async function loadAndPopulateMedicoForm(medicoId) {
         document.getElementById('d-mailings').value = data.recebe_mailings_dih ? 'sim' : 'nao';
        document.getElementById('d-resp-clh-container').setSelectedIds(data.responsavel_clh_ids || []);
         
-        // ALTERADO: Lógica para popular moradas garantindo um mínimo de 2
         const moradasContainer = document.getElementById('d-moradas-list');
         moradasContainer.innerHTML = '';
         const moradasData = data.moradas || [];
         moradasData.forEach(morada => addMoradaInput(morada));
         
-        // Adiciona campos vazios até atingir o mínimo de 2
         const moradasVisiveis = moradasContainer.children.length;
         if (moradasVisiveis < 2) {
             for (let i = moradasVisiveis; i < 2; i++) {
@@ -1106,7 +1121,6 @@ async function loadAndPopulateMedicoForm(medicoId) {
             }
         }
 
-        // Restante da função permanece igual
         document.querySelector('#tab-medicos .initial-input[type="email"]').value = (data.emails || [])[0] || '';
         document.getElementById('d-emails-list').innerHTML = '';
         (data.emails || []).slice(1).forEach(val => addDynamicInput('d-emails-list', 'email', 'exemplo@email.com', val));
@@ -1269,7 +1283,6 @@ async function handleSimpleCreate(formId, coll, fieldId, getExtra = () => ({})) 
 // --- PONTO DE ENTRADA PRINCIPAL ---
 document.addEventListener('DOMContentLoaded', async () => {
    
-
     // 1. CONFIGURAR EVENT LISTENERS PRIMEIRO
     document.querySelectorAll(".tabs").forEach(c => {
         c.addEventListener("click", e => {
@@ -1287,58 +1300,41 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-   document.getElementById('form-hospital')?.addEventListener('submit', async e => {
+    document.getElementById('form-hospital')?.addEventListener('submit', async e => {
     e.preventDefault();
     const hospitalData = {
-        nome: document.getElementById('h-nome').value,
-        morada: document.getElementById('h-morada').value,
-        cidade: document.getElementById('h-cidade').value,
-        cp: document.getElementById('h-cp').value,
-        contacto: document.getElementById('h-contacto').value,
-        fax: document.getElementById('h-fax').value,
-        email: document.getElementById('h-email').value,
-        site: document.getElementById('h-site').value,
-        sigla: document.getElementById('h-sigla').value,
-        pasta_arquivo: document.getElementById('h-pasta').value,
+        nome: document.getElementById('h-nome').value, morada: document.getElementById('h-morada').value,
+        cidade: document.getElementById('h-cidade').value, cp: document.getElementById('h-cp').value,
+        contacto: document.getElementById('h-contacto').value, fax: document.getElementById('h-fax').value,
+        email: document.getElementById('h-email').value, site: document.getElementById('h-site').value,
+        sigla: document.getElementById('h-sigla').value, pasta_arquivo: document.getElementById('h-pasta').value,
         trauma_adulto_nivel: document.getElementById('h-trauma-adulto').value,
         trauma_pediatrico_nivel: document.getElementById('h-trauma-pediatrico').value,
         clh_id: document.getElementById('h-clh-value').value,
         responsavel_ids: document.getElementById('h-responsaveis-container').getSelectedIds(),
         servicos_ids: document.getElementById('h-servicos-container').getSelectedIds(),
-        convencoes: getDynamicInputValues('h-convencoes-list'),
-        notas: getDynamicInputValues('h-notas-list'),
-        uls: document.getElementById('h-uls').value === 'sim',
-        publico: document.getElementById('h-publico').value === 'sim',
-        privado: document.getElementById('h-privado').value === 'sim',
-        universitario: document.getElementById('h-universitario').value === 'sim',
-        pediatrico: document.getElementById('h-pediatrico').value === 'sim',
-        consultorio: document.getElementById('h-consultorio').value === 'sim',
+        convencoes: getDynamicInputValues('h-convencoes-list'), notas: getDynamicInputValues('h-notas-list'),
+        uls: document.getElementById('h-uls').value === 'sim', publico: document.getElementById('h-publico').value === 'sim',
+        privado: document.getElementById('h-privado').value === 'sim', universitario: document.getElementById('h-universitario').value === 'sim',
+        pediatrico: document.getElementById('h-pediatrico').value === 'sim', consultorio: document.getElementById('h-consultorio').value === 'sim',
         ativo: document.getElementById('h-ativo').value === 'sim',
     };
 
     try {
         const newResponsibleMemberIds = hospitalData.responsavel_ids;
-
         if (currentEditId && currentEditType === 'hospital') {
-            // MODO EDIÇÃO
             const hospitalRef = doc(db, "hospitais", currentEditId);
             const docBeforeSnap = await getDoc(hospitalRef);
             const dataBefore = docBeforeSnap.data();
             const oldResponsibleMemberIds = dataBefore.responsavel_ids || [];
-
             await updateDoc(hospitalRef, hospitalData);
             await syncAssociations(currentEditId, oldResponsibleMemberIds, newResponsibleMemberIds, 'membrosclh', 'hospitais_responsabilidade_ids');
-            
             alert("Hospital atualizado e associações sincronizadas com sucesso!");
             window.location.href = 'lista_hospitais.html';
-
         } else {
-            // MODO CRIAÇÃO
             hospitalData.criado_em = new Date();
             const docRef = await addDoc(collection(db, "hospitais"), hospitalData);
-
             await syncAssociations(docRef.id, [], newResponsibleMemberIds, 'membrosclh', 'hospitais_responsabilidade_ids');
-
             alert("Hospital guardado e associações criadas com sucesso!");
             e.target.reset();
             document.getElementById('h-responsaveis-container').setSelectedIds([]);
@@ -1352,9 +1348,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-   document.getElementById('form-membro')?.addEventListener('submit', async e => {
+    document.getElementById('form-membro')?.addEventListener('submit', async e => {
     e.preventDefault();
-    // ... (toda a sua recolha de dados continua igual)
     const initialEmail = document.querySelector('#tab-membros .initial-input[type="email"]').value.trim();
     const allEmails = [initialEmail, ...getDynamicInputValues('m-emails-list')].filter(Boolean);
     const initialTel = document.querySelector('#tab-membros .initial-input[type="tel"]').value.trim();
@@ -1367,43 +1362,30 @@ document.addEventListener('DOMContentLoaded', async () => {
            const membroData = {
         nome: document.getElementById('m-nome').value.trim(),
         nome_completo: document.getElementById('m-nome-completo').value.trim(),
-        genero: document.getElementById('m-genero').value,
-        congregacao_id: document.getElementById('m-congregacao').value,
+        genero: document.getElementById('m-genero').value, congregacao_id: document.getElementById('m-congregacao').value,
         ativo: document.getElementById('m-ativo').value === 'sim',
         hospitais_responsabilidade_ids: document.getElementById('m-hospitais-container').getSelectedIds(),
-        grupos: grupos,
-        morada: document.getElementById('m-morada').value.trim(),
-        emails: allEmails,
-        telemoveis: allTels,
-        foto_url: document.getElementById('m-foto-link').value.trim(),
+        grupos: grupos, morada: document.getElementById('m-morada').value.trim(),
+        emails: allEmails, telemoveis: allTels, foto_url: document.getElementById('m-foto-link').value.trim(),
         cartao_aer: document.getElementById('m-cartao-aer').value,
         recebe_mailings_dih: document.getElementById('m-mailings').value === 'sim',
     };
 
     try {
         const newHospitalIds = membroData.hospitais_responsabilidade_ids;
-
         if (currentEditId && currentEditType === 'membro') {
-            // MODO EDIÇÃO
             const membroRef = doc(db, "membrosclh", currentEditId);
             const docBeforeSnap = await getDoc(membroRef);
             const dataBefore = docBeforeSnap.data();
             const oldHospitalIds = dataBefore.hospitais_responsabilidade_ids || [];
-
             await updateDoc(membroRef, membroData);
-            // Sincroniza a associação nos documentos dos hospitais
             await syncAssociations(currentEditId, oldHospitalIds, newHospitalIds, 'hospitais', 'responsavel_ids');
-            
             alert("Membro atualizado e associações sincronizadas com sucesso!");
             window.location.href = 'lista_membros.html';
-               } else {
-            // MODO CRIAÇÃO
+        } else {
             membroData.criado_em = new Date();
             const docRef = await addDoc(collection(db, "membrosclh"), membroData);
-            
-            // Sincroniza a associação nos documentos dos hospitais
             await syncAssociations(docRef.id, [], newHospitalIds, 'hospitais', 'responsavel_ids');
-
             alert("Membro guardado e associações criadas com sucesso!");
             e.target.reset();
             document.getElementById('m-emails-list').innerHTML = '';
@@ -1418,22 +1400,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
     
-document.getElementById('form-medico')?.addEventListener('submit', async e => {
+    document.getElementById('form-medico')?.addEventListener('submit', async e => {
     e.preventDefault();
-
-    // --- A recolha de dados permanece igual ---
     const medicoData = {
-        nome: document.getElementById('d-nome').value,
-        nome_completo: document.getElementById('d-nome-completo').value,
-        cedula: document.getElementById('d-cedula').value,
-        imagem_url: document.getElementById('d-imagem-link').value,
-        genero: document.getElementById('d-genero').value,
-        cooperador_situacao: document.getElementById('d-situacao-coop').value,
+        nome: document.getElementById('d-nome').value, nome_completo: document.getElementById('d-nome-completo').value,
+        cedula: document.getElementById('d-cedula').value, imagem_url: document.getElementById('d-imagem-link').value,
+        genero: document.getElementById('d-genero').value, cooperador_situacao: document.getElementById('d-situacao-coop').value,
         classificacao: document.getElementById('d-classificacao').value,
         responsavel_clh_ids: document.getElementById('d-resp-clh-container').getSelectedIds(),
         recebe_mailings_dih: document.getElementById('d-mailings').value === 'sim',
-        clh_id: document.getElementById('d-clh-value').value,
-        congregacao_id: document.getElementById('d-congregacao-value').value
+        clh_id: document.getElementById('d-clh-value').value, congregacao_id: document.getElementById('d-congregacao-value').value
     };
     const initialEmail = document.querySelector('#tab-medicos .initial-input[type="email"]').value.trim();
     medicoData.emails = [initialEmail, ...getDynamicInputValues('d-emails-list')].filter(Boolean);
@@ -1446,8 +1422,7 @@ document.getElementById('form-medico')?.addEventListener('submit', async e => {
     medicoData.especialidade_ids = document.getElementById('d-especialidades-container').getSelectedIds();
     medicoData.sub_especialidade_ids = document.getElementById('d-sub-especialidades-container').getSelectedIds();
     medicoData.posicoes = Array.from(document.querySelectorAll('#d-posicoes-list .input-group')).map(p => ({ 
-        hospital_id: p.querySelector('.posicao-hospital')?.value, 
-        servico_id: p.querySelector('.posicao-servico')?.value, 
+        hospital_id: p.querySelector('.posicao-hospital')?.value, servico_id: p.querySelector('.posicao-servico')?.value, 
         cargo: p.querySelector('.posicao-cargo')?.value, 
         horario: { dia: p.querySelector('.posicao-horario-dia')?.value, parte: p.querySelector('.posicao-horario-parte')?.value } 
     })).filter(p => p.hospital_id);
@@ -1459,77 +1434,94 @@ document.getElementById('form-medico')?.addEventListener('submit', async e => {
 
     try {
         const newResponsibleMemberIds = medicoData.responsavel_clh_ids;
-        // LOG 1: Verificar os IDs obtidos do formulário
-        console.log("1. IDs de membros responsáveis (do formulário):", newResponsibleMemberIds);
-
         if (currentEditId && (currentEditType === 'medico' || currentEditType === 'medico_acao')) {
-            // MODO EDIÇÃO
             const medicoRef = doc(db, "medicos", currentEditId);
-
             const docBeforeSnap = await getDoc(medicoRef);
             const dataBefore = docBeforeSnap.data();
             const oldResponsibleMemberIds = dataBefore.responsavel_clh_ids || [];
-            // LOG 2: Verificar os IDs antigos lidos do Firestore
-            console.log("2. IDs de membros responsáveis ANTIGOS (do Firestore):", oldResponsibleMemberIds);
-
             await updateDoc(medicoRef, medicoData);
-            console.log("Documento do médico atualizado com sucesso.");
-
-            // LOG 3: Verificar os parâmetros antes de chamar a sincronização
-            console.log("3. Chamando syncAssociations com os seguintes parâmetros:", {
-                docId: currentEditId,
-                oldIds: oldResponsibleMemberIds,
-                newIds: newResponsibleMemberIds,
-                collection: 'membrosclh',
-                field: 'medicos_responsabilidade_ids'
-            });
-
             await syncAssociations(currentEditId, oldResponsibleMemberIds, newResponsibleMemberIds, 'membrosclh', 'medicos_responsabilidade_ids');
-            
             alert("Médico atualizado e associações sincronizadas com sucesso!");
-            
             if (currentEditType === 'medico_acao') {
                 switchToTab('acao');
             } else {
                  window.location.href = `medico.html?id=${currentEditId}`;
             }
-
         } else {
-            // MODO CRIAÇÃO (Lógica simplificada para depuração)
             medicoData.criado_em = new Date();
             const docRef = await addDoc(collection(db, "medicos"), medicoData);
-            console.log("Novo médico criado com ID:", docRef.id);
-            
             await syncAssociations(docRef.id, [], newResponsibleMemberIds, 'membrosclh', 'medicos_responsabilidade_ids');
-
             alert("Médico guardado e associações criadas com sucesso!");
-            
-            e.target.reset(); // ... Lógica de reset
-            // ...
+            e.target.reset();
         }
     } catch (err) { 
-        // LOG DE ERRO: Capturar qualquer erro no processo
         console.error("ERRO DETALHADO ao guardar o médico ou sincronizar:", err); 
         alert("Ocorreu um erro ao guardar o médico. Verifique a consola para mais detalhes."); 
     }
 });
 
+    document.getElementById('form-paciente')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        
+        const nome = document.getElementById('p-nome').value.trim();
+        if (!nome) {
+            alert("O campo 'Nome' é obrigatório.");
+            return;
+        }
 
+        const initialEmail = document.querySelector('#tab-pacientes .initial-input[type="email"]').value.trim();
+        const allEmails = [initialEmail, ...getDynamicInputValues('p-emails-list')].filter(Boolean);
+        const initialTel = document.querySelector('#tab-pacientes .initial-input[type="tel"]').value.trim();
+        const allTels = [initialTel, ...getDynamicInputValues('p-telemoveis-list')].filter(Boolean);
 
-    // ✅ MOVIDO PARA AQUI DENTRO
+        try {
+            const pacientesRef = collection(db, 'pacientes');
+            const queries = [];
+            if (allEmails.length > 0) {
+                queries.push(getDocs(query(pacientesRef, where('nome', '==', nome), where('emails', 'array-contains-any', allEmails))));
+            }
+            if (allTels.length > 0) {
+                 queries.push(getDocs(query(pacientesRef, where('nome', '==', nome), where('telemoveis', 'array-contains-any', allTels))));
+            }
+
+            if (queries.length > 0) {
+                const results = await Promise.all(queries);
+                const hasDuplicates = results.some(snapshot => !snapshot.empty);
+                if (hasDuplicates) {
+                    const proceed = confirm("AVISO: Já parece existir um paciente com este Nome e Email/Telemóvel. Deseja continuar e criar na mesma?");
+                    if (!proceed) { return; }
+                }
+            }
+            
+            const pacienteData = {
+                nome: nome, nome_completo: document.getElementById('p-nome-completo').value.trim(),
+                genero: document.getElementById('p-genero').value, congregacao_id: document.getElementById('p-congregacao').value,
+                emails: allEmails, telemoveis: allTels, criado_em: new Date()
+            };
+
+            await addDoc(pacientesRef, pacienteData);
+            alert("Paciente guardado com sucesso!");
+            e.target.reset();
+            document.getElementById('p-emails-list').innerHTML = '';
+            document.getElementById('p-telemoveis-list').innerHTML = '';
+
+        } catch (err) {
+            console.error("Erro ao guardar o paciente:", err);
+            alert("Ocorreu um erro ao guardar o paciente.");
+        }
+    });
+
     document.getElementById('form-atuacao')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const editId = e.target.dataset.editId;
         const newMedicoIds = document.getElementById('atuacao-medicos-container').getSelectedIds();
         const newMembroIds = document.getElementById('atuacao-membros-container').getSelectedIds();
+        const newPacienteIds = document.getElementById('atuacao-pacientes-container').getSelectedIds();
         
         const atuacaoData = {
-            membro_ids: newMembroIds, 
-            medico_ids: newMedicoIds,
-            ordem: document.getElementById('atuacao-ordem').value, 
-            tipo: document.getElementById('atuacao-tipo').value,
-            data: document.getElementById('atuacao-data').value, 
-            quantidade: document.getElementById('atuacao-quantidade').value,
+            membro_ids: newMembroIds, medico_ids: newMedicoIds, paciente_ids: newPacienteIds,
+            ordem: document.getElementById('atuacao-ordem').value, tipo: document.getElementById('atuacao-tipo').value,
+            data: document.getElementById('atuacao-data').value, quantidade: document.getElementById('atuacao-quantidade').value,
             observacoes: document.getElementById('atuacao-obs').value
         };
 
@@ -1541,6 +1533,7 @@ document.getElementById('form-medico')?.addEventListener('submit', async e => {
                 await updateDoc(atuacaoRef, atuacaoData);
                 await syncAssociations(editId, dataBefore.medico_ids || [], newMedicoIds, 'medicos', 'atuacoes_ids');
                 await syncAssociations(editId, dataBefore.membro_ids || [], newMembroIds, 'membrosclh', 'atuacoes_ids');
+                await syncAssociations(editId, dataBefore.paciente_ids || [], newPacienteIds, 'pacientes', 'atuacoes_ids');
                 alert('Atuação atualizada e associações sincronizadas!');
                 window.location.href = `medico.html?id=${currentEditId}`;
             } else {
@@ -1548,6 +1541,7 @@ document.getElementById('form-medico')?.addEventListener('submit', async e => {
                 const docRef = await addDoc(collection(db, 'atuacoes'), atuacaoData);
                 await syncAssociations(docRef.id, [], newMedicoIds, 'medicos', 'atuacoes_ids');
                 await syncAssociations(docRef.id, [], newMembroIds, 'membrosclh', 'atuacoes_ids');
+                await syncAssociations(docRef.id, [], newPacienteIds, 'pacientes', 'atuacoes_ids');
                 alert('Atuação guardada e associada!');
                 resetAtuacaoForm();
                 if (currentEditId) await initializeActionEditor(currentEditId);
@@ -1558,7 +1552,6 @@ document.getElementById('form-medico')?.addEventListener('submit', async e => {
         }
     });
 
-    // ✅ MOVIDO PARA AQUI DENTRO
     document.getElementById('form-lead')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const editId = e.target.dataset.editId;
@@ -1566,14 +1559,10 @@ document.getElementById('form-medico')?.addEventListener('submit', async e => {
         const newMembroIds = document.getElementById('lead-membros-container').getSelectedIds();
 
         const leadData = {
-            hospital_id: document.getElementById('lead-hospital-value').value, 
-            data: document.getElementById('lead-data').value,
-            tipo: document.getElementById('lead-tipo').value, 
-            medico_ids: newMedicoIds,
-            membro_ids: newMembroIds,
-            descricao: document.getElementById('lead-descricao').value, 
-            servico_id: document.getElementById('lead-servico').value,
-            status: document.getElementById('lead-status').value, 
+            hospital_id: document.getElementById('lead-hospital-value').value, data: document.getElementById('lead-data').value,
+            tipo: document.getElementById('lead-tipo').value, medico_ids: newMedicoIds,
+            membro_ids: newMembroIds, descricao: document.getElementById('lead-descricao').value, 
+            servico_id: document.getElementById('lead-servico').value, status: document.getElementById('lead-status').value, 
             fechado: document.getElementById('lead-fechado').value,
         };
 
@@ -1599,15 +1588,12 @@ document.getElementById('form-medico')?.addEventListener('submit', async e => {
         } catch (error) { console.error("Erro ao guardar lead: ", error); alert('Ocorreu um erro.'); }
     });
     
-    // ✅ MOVIDO PARA AQUI DENTRO E REMOVIDO O DUPLICADO
     document.getElementById('form-pedido')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const editId = e.target.dataset.editId;
         const newMembroIds = document.getElementById('pedido-membros-container').getSelectedIds();
 
-        const pedidoData = {
-            membro_ids: newMembroIds,
-        };
+        const pedidoData = { membro_ids: newMembroIds };
 
         try {
             if (editId) {
@@ -1634,17 +1620,15 @@ document.getElementById('form-medico')?.addEventListener('submit', async e => {
     handleSimpleCreate('form-congregacao', 'congregacoes', 'cong-nome', () => ({ cidade: document.getElementById('cong-cidade')?.value }));
 
     // 2. CARREGAR DADOS DA FIREBASE (CACHE)
-    const hospitaisPromise = getDocs(collection(db, 'hospitais')).then(snapshot => 
-        snapshot.docs.map(doc => ({ id: doc.id, nome: doc.data().nome || '' }))
-    );
-    [hospitaisCache, servicosCache, especialidadesCache, membrosCache, clhCache, congregacoesCache, medicosCache] = await Promise.all([
-        hospitaisPromise,
+    [hospitaisCache, servicosCache, especialidadesCache, membrosCache, clhCache, congregacoesCache, medicosCache, pacientesCache] = await Promise.all([
+        populateDataCache('hospitais', 'nome'),
         populateDataCache('servicos', 'nome'),
         populateDataCache('especialidade', 'nome'),
         populateDataCache('membrosclh', 'nome'),
         populateDataCache('clh', 'nome'),
         populateDataCache('congregacoes', 'nome'),
-        populateMedicosCache()
+        populateMedicosCache(),
+        populateDataCache('pacientes', 'nome')
     ]);
 
     // 3. INICIALIZAR COMPONENTES DINÂMICOS
@@ -1659,8 +1643,10 @@ document.getElementById('form-medico')?.addEventListener('submit', async e => {
             select.appendChild(option);
         });
     };
+    
     populateSelect('lead-servico', servicosCache, 'Selecione...');
     populateSelect('m-congregacao', congregacoesCache, 'Selecione uma congregação...');
+    populateSelect('p-congregacao', congregacoesCache, 'Selecione uma congregação...');
     
     initMultiSearchSelect('d-especialidades-container', especialidadesCache);
     initMultiSearchSelect('d-sub-especialidades-container', especialidadesCache);
@@ -1673,27 +1659,25 @@ document.getElementById('form-medico')?.addEventListener('submit', async e => {
     initMultiSearchSelect('h-servicos-container', servicosCache);
     initMultiSearchSelect('h-responsaveis-container', membrosCache);
     initMultiSearchSelect('d-resp-clh-container', membrosCache);
+    initMultiSearchSelect('atuacao-pacientes-container', pacientesCache);
+
     makeSelectSearchable(document.getElementById('h-clh-searchable-container'), clhCache);
     makeSelectSearchable(document.getElementById('d-clh-searchable-container'), clhCache);
     makeSelectSearchable(document.getElementById('d-congregacao-searchable-container'), congregacoesCache);
     makeSelectSearchable(document.getElementById('lead-hospital-container'), hospitaisCache);
     
     // 4. EXECUTAR LÓGICA PRINCIPAL DA PÁGINA
- const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(window.location.search);
     currentEditType = params.get('edit');
     currentEditId = params.get('id');
 
     if (currentEditType === 'medico_acao' && currentEditId) {
         const container = document.querySelector('.container');
         container?.classList.add('action-edit-mode');
-        
-        // CORREÇÃO: Adicionada a aba 'membros' à lista de bloqueio.
-        const abasBloqueadas = ['hospitais', 'membros', 'servicos', 'clh', 'congregacoes', 'especialidades'];
-        
+        const abasBloqueadas = ['hospitais', 'membros', 'servicos', 'clh', 'congregacoes', 'especialidades', 'pacientes'];
         abasBloqueadas.forEach(tabId => {
             document.querySelector(`.tab-link[data-tab="${tabId}"]`)?.classList.add('locked');
         });
-        
         document.querySelector(`.tab-link[data-tab="medicos"]`)?.classList.add('unlocked');
         document.querySelector(`.tab-link[data-tab="acao"]`)?.classList.add('unlocked');
         const acaoTab = document.getElementById('tab-acao');
