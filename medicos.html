@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lista de Médicos</title>
     
-    <!-- Link para a biblioteca de ícones Font Awesome (para o menu) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
@@ -21,7 +20,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 20px; }
         .container { max-width: 1600px; margin: auto; background: var(--surface-color); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
         h1 { color: #fff; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
-        .filters-container { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; }
+        .filters-container { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; align-items: center; }
         .filters-container input[type="text"] { padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 1em; background-color: var(--background-color); color: var(--text-color); }
         .multi-select-container { position: relative; }
         .multi-select-button { background-color: var(--surface-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 4px; cursor: pointer; width: 200px; text-align: left; }
@@ -38,15 +37,25 @@
             background-color: var(--background-color); color: var(--text-color);
         }
         .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; font-weight: 600; text-decoration: none; display: inline-block; margin-right: 5px; background-color: var(--primary-color); color: white; }
+        .btn-secondary { background-color: #6c757d; } /* Cor para o novo botão */
         .btn-view { background-color: var(--blue-view); color: #000; padding: 6px 12px; font-size: 0.9em; }
         
+        /* --- CSS ADICIONADO --- */
+      #advanced-filters-content {
+    display: none; /* Escondido por defeito */
+    flex-basis: 100%; /* Ocupa a largura toda para quebrar a linha */
+    margin-top: 15px;
+    /* As propriedades flex abaixo só terão efeito quando o display for 'flex' (via JS) */
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
         #doctors-list {
             display: flex;
             flex-direction: column;
             gap: 10px;
             margin-top: 20px;
         }
-
         .doctor-card {
             background-color: #343a40;
             border: 1px solid var(--border-color);
@@ -54,7 +63,6 @@
             overflow: hidden;
             transition: all 0.3s ease-in-out;
         }
-
         .card-summary {
             display: flex;
             align-items: center;
@@ -62,11 +70,7 @@
             cursor: pointer;
             position: relative;
         }
-        
-        .card-summary:hover {
-            background-color: #3a4045;
-        }
-
+        .card-summary:hover { background-color: #3a4045; }
         .status-indicator {
             padding: 5px 12px;
             border-radius: 20px;
@@ -79,25 +83,20 @@
         .status-cooperador { background-color: #28a745; }
         .status-nao-cooperador { background-color: #dc3545; }
         .status-outro { background-color: #6c757d; }
-        
         .card-info { flex-grow: 1; }
         .card-info .doctor-name { font-size: 1.2em; font-weight: 600; margin: 0; color: #fff; }
         .card-info .doctor-specialties { font-size: 0.9em; margin: 4px 0 0; color: var(--secondary-color); }
-
         .card-summary::after {
             content: '▾'; font-size: 1.5em; transition: transform 0.3s ease; margin-left: 15px;
         }
         .doctor-card.expanded .card-summary::after { transform: rotate(180deg); }
-
         .card-details {
             max-height: 0; overflow: hidden;
             transition: max-height 0.4s ease-out, padding 0.4s ease-out;
             display: flex; gap: 20px;
             border-top: 1px solid var(--border-color); padding: 0 20px;
         }
-        
         .doctor-card.expanded .card-details { max-height: 500px; padding: 20px; }
-
         .details-left { flex: 0 0 120px; text-align: center; }
         .details-left .doctor-photo {
             width: 100px; height: 100px; border-radius: 50%; object-fit: cover;
@@ -113,13 +112,22 @@
 <body>
     <div class="container">
         <h1>Lista de Médicos</h1>
+        <!-- --- HTML MODIFICADO --- -->
         <div class="filters-container">
+            <!-- Filtro de nome sempre visível -->
             <input type="text" id="search-input" placeholder="Pesquisar por nome...">
-            <input type="text" id="cedula-input" placeholder="Pesquisar por cédula...">
-            <div class="multi-select-container"><button class="multi-select-button">Especialidades</button><div class="multi-select-dropdown" id="especialidades-filter"></div></div>
-            <div class="multi-select-container"><button class="multi-select-button">Sub-Especialidades</button><div class="multi-select-dropdown" id="sub-especialidades-filter"></div></div>
-            <div class="multi-select-container"><button class="multi-select-button">Hospitais</button><div class="multi-select-dropdown" id="hospitais-filter"></div></div>
-            <div class="multi-select-container"><button class="multi-select-button">Serviços</button><div class="multi-select-dropdown" id="servicos-filter"></div></div>
+            
+            <!-- Botão para mostrar/esconder outros filtros -->
+            <button id="toggle-filters-btn" class="btn btn-secondary">Filtros Avançados</button>
+
+            <!-- Container para os filtros escondidos -->
+            <div id="advanced-filters-content">
+                <input type="text" id="cedula-input" placeholder="Pesquisar por cédula...">
+                <div class="multi-select-container"><button class="multi-select-button">Especialidades</button><div class="multi-select-dropdown" id="especialidades-filter"></div></div>
+                <div class="multi-select-container"><button class="multi-select-button">Sub-Especialidades</button><div class="multi-select-dropdown" id="sub-especialidades-filter"></div></div>
+                <div class="multi-select-container"><button class="multi-select-button">Hospitais</button><div class="multi-select-dropdown" id="hospitais-filter"></div></div>
+                <div class="multi-select-container"><button class="multi-select-button">Serviços</button><div class="multi-select-dropdown" id="servicos-filter"></div></div>
+            </div>
         </div>
         
         <div id="doctors-list">
@@ -131,235 +139,167 @@
         </div>
     </div>
 
-    <!-- Placeholder onde o menu será carregado -->
     <div id="bottom-menu-placeholder"></div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
-            authDomain: "medical-5baa0.firebaseapp.com",
-            projectId: "medical-5baa0",
-            storageBucket: "medical-5baa0.appspot.com",
-            messagingSenderId: "900547659131",
-            appId: "1:900547659131:web:708f90f8fa1500d76569de"
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
+        authDomain: "medical-5baa0.firebaseapp.com",
+        projectId: "medical-5baa0",
+        storageBucket: "medical-5baa0.appspot.com",
+        messagingSenderId: "900547659131",
+        appId: "1:900547659131:web:708f90f8fa1500d76569de"
+    };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-        let allDoctorsData = [];
-        const ITEMS_PER_PAGE = 50;
-        let visibleItemsCount = ITEMS_PER_PAGE;
+    let allDoctorsData = [];
+    const ITEMS_PER_PAGE = 50;
+    let visibleItemsCount = ITEMS_PER_PAGE;
 
+    function updateDisplay(doctorsData, filters) {
+        const filteredData = doctorsData.filter(doc => {
+            // --- LÓGICA DE FILTRO DE NOME CORRIGIDA ---
+            // Pesquisar APENAS no nome curto (doc.nome).
+            if (filters.searchTerm && !doc.nome.toLowerCase().includes(filters.searchTerm)) {
+                return false;
+            }
+
+            // O resto dos filtros permanecem iguais
+            if (filters.cedulaTerm && !(doc.cedula && doc.cedula.toLowerCase().includes(filters.cedulaTerm))) return false;
+            if (filters.selectedSpecialties.length > 0 && !filters.selectedSpecialties.some(id => doc.especialidade_ids.includes(id))) return false;
+            if (filters.selectedSubSpecialties.length > 0 && !filters.selectedSubSpecialties.some(id => doc.sub_especialidade_ids.includes(id))) return false;
+            if (filters.selectedHospitals.length > 0 && !doc.posicoes.some(p => filters.selectedHospitals.includes(p.hospital_id))) return false;
+            if (filters.selectedServices.length > 0 && !doc.posicoes.some(p => filters.selectedServices.includes(p.servico_id))) return false;
+            
+            return true;
+        });
+
+        filteredData.sort((a, b) => a.nome.localeCompare(b.nome, 'pt', { numeric: true }));
+        
+        const showMoreBtn = document.getElementById('show-more-btn');
+        const isAnyFilterActive = filters.searchTerm || filters.cedulaTerm || filters.selectedSpecialties.length > 0 || filters.selectedSubSpecialties.length > 0 || filters.selectedHospitals.length > 0 || filters.selectedServices.length > 0;
+        
+        let dataToRender;
+        if (isAnyFilterActive) {
+            dataToRender = filteredData;
+            showMoreBtn.style.display = 'none';
+        } else {
+            dataToRender = filteredData.slice(0, visibleItemsCount);
+            showMoreBtn.style.display = visibleItemsCount < filteredData.length ? 'block' : 'none';
+        }
+        
         const doctorsListContainer = document.getElementById('doctors-list');
+        if (dataToRender.length === 0) {
+            doctorsListContainer.innerHTML = '<p style="text-align: center;">Nenhum médico corresponde aos filtros.</p>';
+            return;
+        }
+
+        const cardsHtml = dataToRender.map(doc => {
+            let statusClass = 'status-outro';
+            if (doc.cooperador_situacao === 'Cooperador') statusClass = 'status-cooperador';
+            else if (doc.cooperador_situacao === 'Não Cooperador') statusClass = 'status-nao-cooperador';
+            const emails = (doc.emails || []).join('<br>');
+            const defaultImage = 'https://via.placeholder.com/100';
+            return `
+            <div class="doctor-card" data-id="${doc.id}">
+                <div class="card-summary">
+                    <div class="status-indicator ${statusClass}">${doc.cooperador_situacao || 'N/D'}</div>
+                    <div class="card-info">
+                        <h3 class="doctor-name">${doc.nome}</h3>
+                        <p class="doctor-specialties">${doc.specialtyNames.replace(/<br>/g, ', ')}</p>
+                    </div>
+                </div>
+                <div class="card-details">
+                    <div class="details-left">
+                        <img src="${doc.imagem_url || defaultImage}" alt="Foto de ${doc.nome}" class="doctor-photo" onerror="this.onerror=null;this.src='${defaultImage}';">
+                        <a href="medico.html?id=${doc.id}" class="btn btn-view">Ver Mais</a>
+                    </div>
+                    <div class="details-right">
+                        <p class="detail-item"><strong>Nome Completo:</strong> <span>${doc.nome_completo || doc.nome}</span></p>
+                        <p class="detail-item"><strong>Hospitais:</strong> <span>${doc.hospitalNames.replace(/<br>/g, ', ') || 'N/A'}</span></p>
+                        <p class="detail-item"><strong>Serviços:</strong> <span>${doc.serviceNames.replace(/<br>/g, ', ') || 'N/A'}</span></p>
+                        <p class="detail-item"><strong>Email:</strong> <span>${emails || 'N/A'}</span></p>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+        doctorsListContainer.innerHTML = cardsHtml;
+    }
+    
+    // As funções auxiliares (populateMultiSelect, loadAndPrepareData) permanecem iguais.
+    function populateMultiSelect(containerId, dataMap) {
+        const container = document.getElementById(containerId); if (!container) return;
+        const sortedData = [...dataMap.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+        let html = `<input type="text" class="dropdown-search-input" placeholder="Filtrar...">`;
+        html += sortedData.map(([id, name]) => `<label><input type="checkbox" value="${id}"> ${name}</label>`).join('');
+        container.innerHTML = html;
+    }
+    async function loadAndPrepareData() {
+        document.getElementById('doctors-list').innerHTML = '<p style="text-align: center;">A carregar dados...</p>';
+        try {
+            const [medicosSnap, especialidadesSnap, hospitaisSnap, servicosSnap] = await Promise.all([
+                getDocs(collection(db, "medicos")), getDocs(collection(db, "especialidade")),
+                getDocs(collection(db, "hospitais")), getDocs(collection(db, "servicos"))
+            ]);
+            const specialtiesMap = new Map(especialidadesSnap.docs.map(doc => [doc.id, doc.data().nome]));
+            const hospitalsMap = new Map(hospitaisSnap.docs.map(doc => { const data = doc.data(); return [doc.id, (data.sigla && data.sigla.trim() !== '') ? `${data.nome} (${data.sigla})` : data.nome || '']; }));
+            const servicesMap = new Map(servicosSnap.docs.map(doc => [doc.id, doc.data().nome]));
+            populateMultiSelect('especialidades-filter', specialtiesMap); populateMultiSelect('sub-especialidades-filter', specialtiesMap); populateMultiSelect('hospitais-filter', hospitalsMap); populateMultiSelect('servicos-filter', servicesMap);
+            allDoctorsData = medicosSnap.docs.map(doc => {
+                const medico = doc.data();
+                return {
+                    id: doc.id,
+                    nome: medico.nome || '', nome_completo: medico.nome_completo || '',
+                    cedula: medico.cedula || '', especialidade_ids: medico.especialidade_ids || [], sub_especialidade_ids: medico.sub_especialidade_ids || [], posicoes: medico.posicoes || [],
+                    specialtyNames: (medico.especialidade_ids || []).map(id => specialtiesMap.get(id)).join('<br>') || 'N/A',
+                    hospitalNames: [...new Set((medico.posicoes || []).map(p => hospitalsMap.get(p.hospital_id)).filter(Boolean))].join('<br>') || 'N/A',
+                    serviceNames: [...new Set((medico.posicoes || []).map(p => servicesMap.get(p.servico_id)).filter(Boolean))].join('<br>') || 'N/A',
+                    cooperador_situacao: medico.cooperador_situacao || null, imagem_url: medico.imagem_url || null, emails: medico.emails || []
+                };
+            });
+            return allDoctorsData;
+        } catch (error) { console.error("Erro ao carregar dados:", error); document.getElementById('doctors-list').innerHTML = '<p style="text-align: center;">Ocorreu um erro ao carregar os dados.</p>'; return []; }
+    }
+    document.addEventListener('DOMContentLoaded', async () => {
+        const doctors = await loadAndPrepareData();
         const searchInput = document.getElementById('search-input');
         const cedulaInput = document.getElementById('cedula-input');
+        const especialidadesFilter = document.getElementById('especialidades-filter');
+        const subEspecialidadesFilter = document.getElementById('sub-especialidades-filter');
+        const hospitaisFilter = document.getElementById('hospitais-filter');
+        const servicosFilter = document.getElementById('servicos-filter');
         const showMoreBtn = document.getElementById('show-more-btn');
-
-        function renderCards(dataToRender) {
-            if (dataToRender.length === 0) {
-                doctorsListContainer.innerHTML = '<p style="text-align: center;">Nenhum médico corresponde aos filtros.</p>';
-                return;
-            }
-
-            const cardsHtml = dataToRender.map(doc => {
-                let statusClass = 'status-outro';
-                if (doc.cooperador_situacao === 'Cooperador') statusClass = 'status-cooperador';
-                else if (doc.cooperador_situacao === 'Não Cooperador') statusClass = 'status-nao-cooperador';
-                
-                const emails = (doc.emails || []).join('<br>');
-                const defaultImage = 'https://via.placeholder.com/100';
-                
-                return `
-                <div class="doctor-card" data-id="${doc.id}">
-                    <div class="card-summary">
-                        <div class="status-indicator ${statusClass}">${doc.cooperador_situacao || 'N/D'}</div>
-                        <div class="card-info">
-                            <h3 class="doctor-name">${doc.nome}</h3>
-                            <p class="doctor-specialties">${doc.specialtyNames.replace(/<br>/g, ', ')}</p>
-                        </div>
-                    </div>
-                    <div class="card-details">
-                        <div class="details-left">
-                            <img src="${doc.imagem_url || defaultImage}" alt="Foto de ${doc.nome}" class="doctor-photo" onerror="this.onerror=null;this.src='${defaultImage}';">
-                            <a href="medico.html?id=${doc.id}" class="btn btn-view">Ver Mais</a>
-                        </div>
-                        <div class="details-right">
-                            <p class="detail-item"><strong>Nome Completo:</strong> <span>${doc.nome_completo || doc.nome}</span></p>
-                            <p class="detail-item"><strong>Hospitais:</strong> <span>${doc.hospitalNames.replace(/<br>/g, ', ') || 'N/A'}</span></p>
-                            <p class="detail-item"><strong>Serviços:</strong> <span>${doc.serviceNames.replace(/<br>/g, ', ') || 'N/A'}</span></p>
-                            <p class="detail-item"><strong>Email:</strong> <span>${emails || 'N/A'}</span></p>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-
-            if (visibleItemsCount === ITEMS_PER_PAGE) {
-                doctorsListContainer.innerHTML = cardsHtml;
-            } else {
-                doctorsListContainer.insertAdjacentHTML('beforeend', cardsHtml);
-            }
-        }
-
-        function populateMultiSelect(containerId, dataMap) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            const sortedData = [...dataMap.entries()].sort((a, b) => a[1].localeCompare(b[1]));
-            let html = `<input type="text" class="dropdown-search-input" placeholder="Filtrar...">`;
-            html += sortedData.map(([id, name]) => `<label><input type="checkbox" value="${id}"> ${name}</label>`).join('');
-            container.innerHTML = html;
-        }
-
-        function setupDropdownSearchListeners() {
-            document.querySelectorAll('.multi-select-dropdown').forEach(dropdown => {
-                const searchInput = dropdown.querySelector('.dropdown-search-input');
-                if (searchInput) {
-                    searchInput.addEventListener('click', (e) => e.stopPropagation());
-                    searchInput.addEventListener('input', (e) => {
-                        const filterText = e.target.value.toLowerCase();
-                        dropdown.querySelectorAll('label').forEach(label => {
-                            label.style.display = label.textContent.toLowerCase().includes(filterText) ? 'block' : 'none';
-                        });
-                    });
-                }
-            });
-        }
-
-        async function loadAndPrepareData() {
-            doctorsListContainer.innerHTML = '<p style="text-align: center;">A carregar dados...</p>';
-            try {
-                const [medicosSnap, especialidadesSnap, hospitaisSnap, servicosSnap] = await Promise.all([
-                    getDocs(collection(db, "medicos")), getDocs(collection(db, "especialidade")),
-                    getDocs(collection(db, "hospitais")), getDocs(collection(db, "servicos"))
-                ]);
-                const specialtiesMap = new Map(especialidadesSnap.docs.map(doc => [doc.id, doc.data().nome]));
-                const hospitalsMap = new Map(hospitaisSnap.docs.map(doc => {
-                    const data = doc.data();
-                    return [doc.id, (data.sigla && data.sigla.trim() !== '') ? `${data.nome} (${data.sigla})` : data.nome || ''];
-                }));
-                const servicesMap = new Map(servicosSnap.docs.map(doc => [doc.id, doc.data().nome]));
-
-                populateMultiSelect('especialidades-filter', specialtiesMap);
-                populateMultiSelect('sub-especialidades-filter', specialtiesMap);
-                populateMultiSelect('hospitais-filter', hospitalsMap);
-                populateMultiSelect('servicos-filter', servicesMap);
-                setupDropdownSearchListeners();
-
-                allDoctorsData = medicosSnap.docs.map(doc => {
-                    const medico = doc.data();
-                    const posicoes = medico.posicoes || [];
-                    const hospitalNames = [...new Set(posicoes.map(p => hospitalsMap.get(p.hospital_id)).filter(Boolean))].join('<br>');
-                    const serviceNames = [...new Set(posicoes.map(p => servicesMap.get(p.servico_id)).filter(Boolean))].join('<br>');
-                    return {
-                        id: doc.id,
-                        nome: medico.nome || '', nome_completo: medico.nome_completo || '',
-                        cedula: medico.cedula || '',
-                        especialidade_ids: medico.especialidade_ids || [],
-                        sub_especialidade_ids: medico.sub_especialidade_ids || [],
-                        posicoes: posicoes,
-                        specialtyNames: (medico.especialidade_ids || []).map(id => specialtiesMap.get(id)).join('<br>') || 'N/A',
-                        hospitalNames: hospitalNames || 'N/A', serviceNames: serviceNames || 'N/A',
-                        cooperador_situacao: medico.cooperador_situacao || null,
-                        imagem_url: medico.imagem_url || null, emails: medico.emails || []
-                    };
-                });
-                filterAndSortAndRender();
-            } catch (error) {
-                console.error("Erro ao carregar dados:", error);
-                doctorsListContainer.innerHTML = '<p style="text-align: center;">Ocorreu um erro ao carregar os dados.</p>';
-            }
-        }
-
-        function filterAndSortAndRender() {
-            const searchTerm = searchInput.value.toLowerCase();
-            const cedulaTerm = cedulaInput.value.toLowerCase();
-            const getSelectedIds = (id) => [...document.querySelectorAll(`#${id} input:checked`)].map(cb => cb.value);
-            
-            const selectedSpecialties = getSelectedIds('especialidades-filter');
-            const selectedSubSpecialties = getSelectedIds('sub-especialidades-filter');
-            const selectedHospitals = getSelectedIds('hospitais-filter');
-            const selectedServices = getSelectedIds('servicos-filter');
-
-            let filteredData = allDoctorsData.filter(doc => {
-                const nameMatch = doc.nome.toLowerCase().includes(searchTerm) || doc.nome_completo.toLowerCase().includes(searchTerm);
-                const cedulaMatch = !cedulaTerm || doc.cedula.toLowerCase().includes(cedulaTerm);
-                const specialtyMatch = selectedSpecialties.length === 0 || selectedSpecialties.some(id => doc.especialidade_ids.includes(id));
-                const subSpecialtyMatch = selectedSubSpecialties.length === 0 || selectedSubSpecialties.some(id => doc.sub_especialidade_ids.includes(id));
-                const hospitalMatch = selectedHospitals.length === 0 || doc.posicoes.some(p => selectedHospitals.includes(p.hospital_id));
-                const serviceMatch = selectedServices.length === 0 || doc.posicoes.some(p => selectedServices.includes(p.servico_id));
-                return nameMatch && cedulaMatch && specialtyMatch && subSpecialtyMatch && hospitalMatch && serviceMatch;
-            });
-
-            filteredData.sort((a, b) => a.nome.localeCompare(b.nome, 'pt', { numeric: true }));
-            
-            const isAnyFilterActive = searchTerm || cedulaTerm || selectedSpecialties.length > 0 || selectedSubSpecialties.length > 0 || selectedHospitals.length > 0 || selectedServices.length > 0;
-            
-            if (isAnyFilterActive) {
-                renderCards(filteredData);
-                showMoreBtn.style.display = 'none';
-            } else {
-                const dataToShow = filteredData.slice(0, visibleItemsCount);
-                const newDataToRender = filteredData.slice(visibleItemsCount - ITEMS_PER_PAGE, visibleItemsCount);
-
-                if (visibleItemsCount === ITEMS_PER_PAGE) {
-                    renderCards(dataToShow);
-                } else {
-                    renderCards(newDataToRender);
-                }
-
-                showMoreBtn.style.display = visibleItemsCount < filteredData.length ? 'block' : 'none';
-            }
-        }
-
-        function handleFilterChange() {
-            visibleItemsCount = ITEMS_PER_PAGE;
-            filterAndSortAndRender();
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadAndPrepareData();
-
-            searchInput.addEventListener('input', handleFilterChange);
-            cedulaInput.addEventListener('input', handleFilterChange);
-            document.getElementById('especialidades-filter').addEventListener('change', handleFilterChange);
-            document.getElementById('sub-especialidades-filter').addEventListener('change', handleFilterChange);
-            document.getElementById('hospitais-filter').addEventListener('change', handleFilterChange);
-            document.getElementById('servicos-filter').addEventListener('change', handleFilterChange);
-            
-            showMoreBtn.addEventListener('click', () => {
-                visibleItemsCount += ITEMS_PER_PAGE;
-                filterAndSortAndRender();
-            });
-
-            doctorsListContainer.addEventListener('click', e => {
-                const summary = e.target.closest('.card-summary');
-                if (summary && !e.target.closest('a')) {
-                    summary.closest('.doctor-card').classList.toggle('expanded');
-                }
-            });
-            
-            document.querySelectorAll('.multi-select-button').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const dropdown = button.nextElementSibling;
-                    const isCurrentlyOpen = dropdown.style.display === 'block';
-                    document.querySelectorAll('.multi-select-dropdown').forEach(d => d.style.display = 'none');
-                    if (!isCurrentlyOpen) dropdown.style.display = 'block';
-                });
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.multi-select-container')) {
-                    document.querySelectorAll('.multi-select-dropdown').forEach(d => d.style.display = 'none');
-                }
-            });
-        });
-    </script>
-
-    <!-- Script que carrega e ativa o menu -->
+        const toggleBtn = document.getElementById('toggle-filters-btn');
+        const advancedFilters = document.getElementById('advanced-filters-content');
+        const doctorsListContainer = document.getElementById('doctors-list');
+        const refreshView = () => {
+            const getSelectedIds = (container) => container ? [...container.querySelectorAll('input:checked')].map(cb => cb.value) : [];
+            const filters = {
+                searchTerm: searchInput ? searchInput.value.toLowerCase() : '', cedulaTerm: cedulaInput ? cedulaInput.value.toLowerCase() : '',
+                selectedSpecialties: getSelectedIds(especialidadesFilter), selectedSubSpecialties: getSelectedIds(subEspecialidadesFilter),
+                selectedHospitals: getSelectedIds(hospitaisFilter), selectedServices: getSelectedIds(servicosFilter),
+            };
+            updateDisplay(doctors, filters);
+        };
+        if(searchInput) searchInput.addEventListener('input', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
+        if(cedulaInput) cedulaInput.addEventListener('input', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
+        if(especialidadesFilter) especialidadesFilter.addEventListener('change', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
+        if(subEspecialidadesFilter) subEspecialidadesFilter.addEventListener('change', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
+        if(hospitaisFilter) hospitaisFilter.addEventListener('change', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
+        if(servicosFilter) servicosFilter.addEventListener('change', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
+        if(showMoreBtn) showMoreBtn.addEventListener('click', () => { visibleItemsCount += ITEMS_PER_PAGE; refreshView(); });
+        if(toggleBtn && advancedFilters) toggleBtn.addEventListener('click', () => { const isHidden = window.getComputedStyle(advancedFilters).display === 'none'; advancedFilters.style.display = isHidden ? 'flex' : 'none'; });
+        if(doctorsListContainer) doctorsListContainer.addEventListener('click', e => { const summary = e.target.closest('.card-summary'); if (summary && !e.target.closest('a')) { summary.closest('.doctor-card').classList.toggle('expanded'); } });
+        document.querySelectorAll('.multi-select-button').forEach(button => { button.addEventListener('click', (e) => { e.stopPropagation(); const dropdown = button.nextElementSibling; const isCurrentlyOpen = dropdown.style.display === 'block'; document.querySelectorAll('.multi-select-dropdown').forEach(d => d.style.display = 'none'); if (!isCurrentlyOpen) dropdown.style.display = 'block'; }); });
+        document.addEventListener('click', (e) => { if (!e.target.closest('.multi-select-container')) { document.querySelectorAll('.multi-select-dropdown').forEach(d => d.style.display = 'none'); } });
+        refreshView();
+    });
+</script>
     <script src="menu-loader.js"></script>
 </body>
 </html>
