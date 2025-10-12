@@ -203,6 +203,43 @@
     /* ADIÇÃO: Classe para esconder elementos */
     .hidden { display: none !important; }
 
+    #loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--background-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease-out;
+    opacity: 1;
+}
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--surface-color);
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+#loader-overlay p {
+    font-size: 1.1em;
+    color: var(--text-color);
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+#loader-overlay.hidden {
+    opacity: 0;
+    pointer-events: none; /* Impede interações com o overlay invisível */
+}
+
     /* RESPONSIVIDADE */
     @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } }
 </style>
@@ -211,6 +248,11 @@
 
 
 <body>
+
+    <div id="loader-overlay">
+    <div class="spinner"></div>
+    <p>A verificar a sua sessão...</p>
+</div>
 
     <div class="container">
         <h1>Plataforma de Edição</h1>
@@ -618,6 +660,7 @@
 // --- IMPORTS E CONFIGURAÇÃO FIREBASE ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, query, where, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
@@ -629,6 +672,7 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 // --- VARIÁVEIS GLOBAIS ---
 let currentEditId = null;
@@ -1281,443 +1325,471 @@ async function handleSimpleCreate(formId, coll, fieldId, getExtra = () => ({})) 
 
 
 // --- PONTO DE ENTRADA PRINCIPAL ---
-document.addEventListener('DOMContentLoaded', async () => {
-   
-    // 1. CONFIGURAR EVENT LISTENERS PRIMEIRO
-    document.querySelectorAll(".tabs").forEach(c => {
-        c.addEventListener("click", e => {
-            if (e.target.matches(".tab-link")) {
-                const t = e.target.dataset.tab;
-                c.querySelectorAll(".tab-link").forEach(l => l.classList.remove("active"));
-                e.target.classList.add("active");
-                let p = e.target.closest('.container, .tab-content');
-                if (p) {
-                    p.querySelectorAll(":scope > .tab-content").forEach(content => content.classList.remove("active"));
-                    const activeContent = p.querySelector(`#tab-${t}`);
-                    if (activeContent) activeContent.classList.add("active");
-                }
-            }
-        });
-    });
-    
-    document.getElementById('form-hospital')?.addEventListener('submit', async e => {
-    e.preventDefault();
-    const hospitalData = {
-        nome: document.getElementById('h-nome').value, morada: document.getElementById('h-morada').value,
-        cidade: document.getElementById('h-cidade').value, cp: document.getElementById('h-cp').value,
-        contacto: document.getElementById('h-contacto').value, fax: document.getElementById('h-fax').value,
-        email: document.getElementById('h-email').value, site: document.getElementById('h-site').value,
-        sigla: document.getElementById('h-sigla').value, pasta_arquivo: document.getElementById('h-pasta').value,
-        trauma_adulto_nivel: document.getElementById('h-trauma-adulto').value,
-        trauma_pediatrico_nivel: document.getElementById('h-trauma-pediatrico').value,
-        clh_id: document.getElementById('h-clh-value').value,
-        responsavel_ids: document.getElementById('h-responsaveis-container').getSelectedIds(),
-        servicos_ids: document.getElementById('h-servicos-container').getSelectedIds(),
-        convencoes: getDynamicInputValues('h-convencoes-list'), notas: getDynamicInputValues('h-notas-list'),
-        uls: document.getElementById('h-uls').value === 'sim', publico: document.getElementById('h-publico').value === 'sim',
-        privado: document.getElementById('h-privado').value === 'sim', universitario: document.getElementById('h-universitario').value === 'sim',
-        pediatrico: document.getElementById('h-pediatrico').value === 'sim', consultorio: document.getElementById('h-consultorio').value === 'sim',
-        ativo: document.getElementById('h-ativo').value === 'sim',
-    };
+const loader = document.getElementById('loader-overlay');
 
-    try {
-        const newResponsibleMemberIds = hospitalData.responsavel_ids;
-        if (currentEditId && currentEditType === 'hospital') {
-            const hospitalRef = doc(db, "hospitais", currentEditId);
-            const docBeforeSnap = await getDoc(hospitalRef);
-            const dataBefore = docBeforeSnap.data();
-            const oldResponsibleMemberIds = dataBefore.responsavel_ids || [];
-            await updateDoc(hospitalRef, hospitalData);
-            await syncAssociations(currentEditId, oldResponsibleMemberIds, newResponsibleMemberIds, 'membrosclh', 'hospitais_responsabilidade_ids');
-            alert("Hospital atualizado e associações sincronizadas com sucesso!");
-            window.location.href = 'lista_hospitais.html';
-        } else {
-            hospitalData.criado_em = new Date();
-            const docRef = await addDoc(collection(db, "hospitais"), hospitalData);
-            await syncAssociations(docRef.id, [], newResponsibleMemberIds, 'membrosclh', 'hospitais_responsabilidade_ids');
-            alert("Hospital guardado e associações criadas com sucesso!");
-            e.target.reset();
-            document.getElementById('h-responsaveis-container').setSelectedIds([]);
-            document.getElementById('h-servicos-container').setSelectedIds([]);
-            document.getElementById('h-convencoes-list').innerHTML = '';
-            document.getElementById('h-notas-list').innerHTML = '';
-        }
-    } catch (err) {
-        console.error("Erro ao guardar hospital:", err);
-        alert("Ocorreu um erro ao guardar o hospital.");
-    }
-});
-
-    document.getElementById('form-membro')?.addEventListener('submit', async e => {
-    e.preventDefault();
-    const initialEmail = document.querySelector('#tab-membros .initial-input[type="email"]').value.trim();
-    const allEmails = [initialEmail, ...getDynamicInputValues('m-emails-list')].filter(Boolean);
-    const initialTel = document.querySelector('#tab-membros .initial-input[type="tel"]').value.trim();
-    const allTels = [initialTel, ...getDynamicInputValues('m-telemoveis-list')].filter(Boolean);
-    const grupos = Array.from(document.querySelectorAll('#m-grupos-list .input-group')).map(g => ({
-        tipo: g.querySelector('.m-grupo-tipo').value,
-        data_entrada: g.querySelector('.m-grupo-data-entrada').value,
-        data_saida: g.querySelector('.m-grupo-data-saida').value
-    })).filter(g => g.tipo);
-           const membroData = {
-        nome: document.getElementById('m-nome').value.trim(),
-        nome_completo: document.getElementById('m-nome-completo').value.trim(),
-        genero: document.getElementById('m-genero').value, congregacao_id: document.getElementById('m-congregacao').value,
-        ativo: document.getElementById('m-ativo').value === 'sim',
-        hospitais_responsabilidade_ids: document.getElementById('m-hospitais-container').getSelectedIds(),
-        grupos: grupos, morada: document.getElementById('m-morada').value.trim(),
-        emails: allEmails, telemoveis: allTels, foto_url: document.getElementById('m-foto-link').value.trim(),
-        cartao_aer: document.getElementById('m-cartao-aer').value,
-        recebe_mailings_dih: document.getElementById('m-mailings').value === 'sim',
-    };
-
-    try {
-        const newHospitalIds = membroData.hospitais_responsabilidade_ids;
-        if (currentEditId && currentEditType === 'membro') {
-            const membroRef = doc(db, "membrosclh", currentEditId);
-            const docBeforeSnap = await getDoc(membroRef);
-            const dataBefore = docBeforeSnap.data();
-            const oldHospitalIds = dataBefore.hospitais_responsabilidade_ids || [];
-            await updateDoc(membroRef, membroData);
-            await syncAssociations(currentEditId, oldHospitalIds, newHospitalIds, 'hospitais', 'responsavel_ids');
-            alert("Membro atualizado e associações sincronizadas com sucesso!");
-            window.location.href = 'lista_membros.html';
-        } else {
-            membroData.criado_em = new Date();
-            const docRef = await addDoc(collection(db, "membrosclh"), membroData);
-            await syncAssociations(docRef.id, [], newHospitalIds, 'hospitais', 'responsavel_ids');
-            alert("Membro guardado e associações criadas com sucesso!");
-            e.target.reset();
-            document.getElementById('m-emails-list').innerHTML = '';
-            document.getElementById('m-telemoveis-list').innerHTML = '';
-            document.getElementById('m-grupos-list').innerHTML = '';
-            addGrupoInput();
-            document.getElementById('m-hospitais-container').setSelectedIds([]);
-        }
-    } catch (err) {
-        console.error("Erro ao guardar membro:", err);
-        alert("Ocorreu um erro ao guardar o membro.");
-    }
-});
-    
-    document.getElementById('form-medico')?.addEventListener('submit', async e => {
-    e.preventDefault();
-    const medicoData = {
-        nome: document.getElementById('d-nome').value, nome_completo: document.getElementById('d-nome-completo').value,
-        cedula: document.getElementById('d-cedula').value, imagem_url: document.getElementById('d-imagem-link').value,
-        genero: document.getElementById('d-genero').value, cooperador_situacao: document.getElementById('d-situacao-coop').value,
-        classificacao: document.getElementById('d-classificacao').value,
-        responsavel_clh_ids: document.getElementById('d-resp-clh-container').getSelectedIds(),
-        recebe_mailings_dih: document.getElementById('d-mailings').value === 'sim',
-        clh_id: document.getElementById('d-clh-value').value, congregacao_id: document.getElementById('d-congregacao-value').value
-    };
-    const initialEmail = document.querySelector('#tab-medicos .initial-input[type="email"]').value.trim();
-    medicoData.emails = [initialEmail, ...getDynamicInputValues('d-emails-list')].filter(Boolean);
-    const initialTel = document.querySelector('#tab-medicos .initial-input[type="tel"]').value.trim();
-    medicoData.telemoveis = [initialTel, ...getDynamicInputValues('d-telemoveis-list')].filter(Boolean);
-    medicoData.moradas = Array.from(document.querySelectorAll('#d-moradas-list .input-group')).map(m => ({
-        obs: m.querySelector('.d-morada-obs').value.trim(),
-        rua: m.querySelector('.d-morada-rua').value.trim()
-    })).filter(m => m.rua);
-    medicoData.especialidade_ids = document.getElementById('d-especialidades-container').getSelectedIds();
-    medicoData.sub_especialidade_ids = document.getElementById('d-sub-especialidades-container').getSelectedIds();
-    medicoData.posicoes = Array.from(document.querySelectorAll('#d-posicoes-list .input-group')).map(p => ({ 
-        hospital_id: p.querySelector('.posicao-hospital')?.value, servico_id: p.querySelector('.posicao-servico')?.value, 
-        cargo: p.querySelector('.posicao-cargo')?.value, 
-        horario: { dia: p.querySelector('.posicao-horario-dia')?.value, parte: p.querySelector('.posicao-horario-parte')?.value } 
-    })).filter(p => p.hospital_id);
-    medicoData.links = Array.from(document.querySelectorAll('#d-links-list .dynamic-input')).map(input => {
-        const url = input.value.trim();
-        if (!url) return null;
-        return { url: url, data_adicionado: input.dataset.date || new Date().toISOString() }; 
-    }).filter(Boolean);
-
-    try {
-        const newResponsibleMemberIds = medicoData.responsavel_clh_ids;
-        if (currentEditId && (currentEditType === 'medico' || currentEditType === 'medico_acao')) {
-            const medicoRef = doc(db, "medicos", currentEditId);
-            const docBeforeSnap = await getDoc(medicoRef);
-            const dataBefore = docBeforeSnap.data();
-            const oldResponsibleMemberIds = dataBefore.responsavel_clh_ids || [];
-            await updateDoc(medicoRef, medicoData);
-            await syncAssociations(currentEditId, oldResponsibleMemberIds, newResponsibleMemberIds, 'membrosclh', 'medicos_responsabilidade_ids');
-            alert("Médico atualizado e associações sincronizadas com sucesso!");
-            if (currentEditType === 'medico_acao') {
-                switchToTab('acao');
-            } else {
-                 window.location.href = `medico.html?id=${currentEditId}`;
-            }
-        } else {
-            medicoData.criado_em = new Date();
-            const docRef = await addDoc(collection(db, "medicos"), medicoData);
-            await syncAssociations(docRef.id, [], newResponsibleMemberIds, 'membrosclh', 'medicos_responsabilidade_ids');
-            alert("Médico guardado e associações criadas com sucesso!");
-            e.target.reset();
-        }
-    } catch (err) { 
-        console.error("ERRO DETALHADO ao guardar o médico ou sincronizar:", err); 
-        alert("Ocorreu um erro ao guardar o médico. Verifique a consola para mais detalhes."); 
-    }
-});
-
-    document.getElementById('form-paciente')?.addEventListener('submit', async e => {
-        e.preventDefault();
+onAuthStateChanged(auth, user => {
+    if (user) {
+        // SUCESSO: Utilizador logado.
+        const minimumDelayPromise = new Promise(resolve => setTimeout(resolve, 1000));
         
-        const nome = document.getElementById('p-nome').value.trim();
-        if (!nome) {
-            alert("O campo 'Nome' é obrigatório.");
-            return;
-        }
-
-        const initialEmail = document.querySelector('#tab-pacientes .initial-input[type="email"]').value.trim();
-        const allEmails = [initialEmail, ...getDynamicInputValues('p-emails-list')].filter(Boolean);
-        const initialTel = document.querySelector('#tab-pacientes .initial-input[type="tel"]').value.trim();
-        const allTels = [initialTel, ...getDynamicInputValues('p-telemoveis-list')].filter(Boolean);
-
-        try {
-            const pacientesRef = collection(db, 'pacientes');
-            const queries = [];
-            if (allEmails.length > 0) {
-                queries.push(getDocs(query(pacientesRef, where('nome', '==', nome), where('emails', 'array-contains-any', allEmails))));
-            }
-            if (allTels.length > 0) {
-                 queries.push(getDocs(query(pacientesRef, where('nome', '==', nome), where('telemoveis', 'array-contains-any', allTels))));
-            }
-
-            if (queries.length > 0) {
-                const results = await Promise.all(queries);
-                const hasDuplicates = results.some(snapshot => !snapshot.empty);
-                if (hasDuplicates) {
-                    const proceed = confirm("AVISO: Já parece existir um paciente com este Nome e Email/Telemóvel. Deseja continuar e criar na mesma?");
-                    if (!proceed) { return; }
-                }
-            }
+        // A função que contém toda a lógica original da página.
+        async function initializePage() {
             
-            const pacienteData = {
-                nome: nome, nome_completo: document.getElementById('p-nome-completo').value.trim(),
-                genero: document.getElementById('p-genero').value, congregacao_id: document.getElementById('p-congregacao').value,
-                emails: allEmails, telemoveis: allTels, criado_em: new Date()
+            // 1. CONFIGURAR EVENT LISTENERS PRIMEIRO
+            document.querySelectorAll(".tabs").forEach(c => {
+                c.addEventListener("click", e => {
+                    if (e.target.matches(".tab-link")) {
+                        const t = e.target.dataset.tab;
+                        c.querySelectorAll(".tab-link").forEach(l => l.classList.remove("active"));
+                        e.target.classList.add("active");
+                        let p = e.target.closest('.container, .tab-content');
+                        if (p) {
+                            p.querySelectorAll(":scope > .tab-content").forEach(content => content.classList.remove("active"));
+                            const activeContent = p.querySelector(`#tab-${t}`);
+                            if (activeContent) activeContent.classList.add("active");
+                        }
+                    }
+                });
+            });
+            
+            document.getElementById('form-hospital')?.addEventListener('submit', async e => {
+            e.preventDefault();
+            const hospitalData = {
+                nome: document.getElementById('h-nome').value, morada: document.getElementById('h-morada').value,
+                cidade: document.getElementById('h-cidade').value, cp: document.getElementById('h-cp').value,
+                contacto: document.getElementById('h-contacto').value, fax: document.getElementById('h-fax').value,
+                email: document.getElementById('h-email').value, site: document.getElementById('h-site').value,
+                sigla: document.getElementById('h-sigla').value, pasta_arquivo: document.getElementById('h-pasta').value,
+                trauma_adulto_nivel: document.getElementById('h-trauma-adulto').value,
+                trauma_pediatrico_nivel: document.getElementById('h-trauma-pediatrico').value,
+                clh_id: document.getElementById('h-clh-value').value,
+                responsavel_ids: document.getElementById('h-responsaveis-container').getSelectedIds(),
+                servicos_ids: document.getElementById('h-servicos-container').getSelectedIds(),
+                convencoes: getDynamicInputValues('h-convencoes-list'), notas: getDynamicInputValues('h-notas-list'),
+                uls: document.getElementById('h-uls').value === 'sim', publico: document.getElementById('h-publico').value === 'sim',
+                privado: document.getElementById('h-privado').value === 'sim', universitario: document.getElementById('h-universitario').value === 'sim',
+                pediatrico: document.getElementById('h-pediatrico').value === 'sim', consultorio: document.getElementById('h-consultorio').value === 'sim',
+                ativo: document.getElementById('h-ativo').value === 'sim',
             };
 
-            await addDoc(pacientesRef, pacienteData);
-            alert("Paciente guardado com sucesso!");
-            e.target.reset();
-            document.getElementById('p-emails-list').innerHTML = '';
-            document.getElementById('p-telemoveis-list').innerHTML = '';
-
-        } catch (err) {
-            console.error("Erro ao guardar o paciente:", err);
-            alert("Ocorreu um erro ao guardar o paciente.");
-        }
-    });
-
-    document.getElementById('form-atuacao')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const editId = e.target.dataset.editId;
-        const newMedicoIds = document.getElementById('atuacao-medicos-container').getSelectedIds();
-        const newMembroIds = document.getElementById('atuacao-membros-container').getSelectedIds();
-        const newPacienteIds = document.getElementById('atuacao-pacientes-container').getSelectedIds();
-        
-        const atuacaoData = {
-            membro_ids: newMembroIds, medico_ids: newMedicoIds, paciente_ids: newPacienteIds,
-            ordem: document.getElementById('atuacao-ordem').value, tipo: document.getElementById('atuacao-tipo').value,
-            data: document.getElementById('atuacao-data').value, quantidade: document.getElementById('atuacao-quantidade').value,
-            observacoes: document.getElementById('atuacao-obs').value
-        };
-
-        try {
-            if (editId) {
-                const atuacaoRef = doc(db, 'atuacoes', editId);
-                const docBeforeSnap = await getDoc(atuacaoRef);
-                const dataBefore = docBeforeSnap.data();
-                await updateDoc(atuacaoRef, atuacaoData);
-                await syncAssociations(editId, dataBefore.medico_ids || [], newMedicoIds, 'medicos', 'atuacoes_ids');
-                await syncAssociations(editId, dataBefore.membro_ids || [], newMembroIds, 'membrosclh', 'atuacoes_ids');
-                await syncAssociations(editId, dataBefore.paciente_ids || [], newPacienteIds, 'pacientes', 'atuacoes_ids');
-                alert('Atuação atualizada e associações sincronizadas!');
-                window.location.href = `medico.html?id=${currentEditId}`;
-            } else {
-                atuacaoData.criado_em = new Date();
-                const docRef = await addDoc(collection(db, 'atuacoes'), atuacaoData);
-                await syncAssociations(docRef.id, [], newMedicoIds, 'medicos', 'atuacoes_ids');
-                await syncAssociations(docRef.id, [], newMembroIds, 'membrosclh', 'atuacoes_ids');
-                await syncAssociations(docRef.id, [], newPacienteIds, 'pacientes', 'atuacoes_ids');
-                alert('Atuação guardada e associada!');
-                resetAtuacaoForm();
-                if (currentEditId) await initializeActionEditor(currentEditId);
+            try {
+                const newResponsibleMemberIds = hospitalData.responsavel_ids;
+                if (currentEditId && currentEditType === 'hospital') {
+                    const hospitalRef = doc(db, "hospitais", currentEditId);
+                    const docBeforeSnap = await getDoc(hospitalRef);
+                    const dataBefore = docBeforeSnap.data();
+                    const oldResponsibleMemberIds = dataBefore.responsavel_ids || [];
+                    await updateDoc(hospitalRef, hospitalData);
+                    await syncAssociations(currentEditId, oldResponsibleMemberIds, newResponsibleMemberIds, 'membrosclh', 'hospitais_responsabilidade_ids');
+                    alert("Hospital atualizado e associações sincronizadas com sucesso!");
+                    window.location.href = 'lista_hospitais.html';
+                } else {
+                    hospitalData.criado_em = new Date();
+                    const docRef = await addDoc(collection(db, "hospitais"), hospitalData);
+                    await syncAssociations(docRef.id, [], newResponsibleMemberIds, 'membrosclh', 'hospitais_responsabilidade_ids');
+                    alert("Hospital guardado e associações criadas com sucesso!");
+                    e.target.reset();
+                    document.getElementById('h-responsaveis-container').setSelectedIds([]);
+                    document.getElementById('h-servicos-container').setSelectedIds([]);
+                    document.getElementById('h-convencoes-list').innerHTML = '';
+                    document.getElementById('h-notas-list').innerHTML = '';
+                }
+            } catch (err) {
+                console.error("Erro ao guardar hospital:", err);
+                alert("Ocorreu um erro ao guardar o hospital.");
             }
-        } catch (error) { 
-            console.error("Erro ao guardar atuação: ", error); 
-            alert('Ocorreu um erro ao guardar a atuação.'); 
-        }
-    });
-
-    document.getElementById('form-lead')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const editId = e.target.dataset.editId;
-        const newMedicoIds = document.getElementById('lead-medicos-container').getSelectedIds();
-        const newMembroIds = document.getElementById('lead-membros-container').getSelectedIds();
-
-        const leadData = {
-            hospital_id: document.getElementById('lead-hospital-value').value, data: document.getElementById('lead-data').value,
-            tipo: document.getElementById('lead-tipo').value, medico_ids: newMedicoIds,
-            membro_ids: newMembroIds, descricao: document.getElementById('lead-descricao').value, 
-            servico_id: document.getElementById('lead-servico').value, status: document.getElementById('lead-status').value, 
-            fechado: document.getElementById('lead-fechado').value,
-        };
-
-        try {
-            if (editId) {
-                const leadRef = doc(db, 'leads', editId);
-                const docBeforeSnap = await getDoc(leadRef);
-                const dataBefore = docBeforeSnap.data();
-                await updateDoc(leadRef, leadData);
-                await syncAssociations(editId, dataBefore.medico_ids || [], newMedicoIds, 'medicos', 'leads_ids');
-                await syncAssociations(editId, dataBefore.membro_ids || [], newMembroIds, 'membrosclh', 'leads_ids');
-                alert('Lead atualizada e associações sincronizadas!');
-                window.location.href = `medico.html?id=${currentEditId}`;
-            } else {
-                leadData.criado_em = new Date();
-                const docRef = await addDoc(collection(db, 'leads'), leadData);
-                await syncAssociations(docRef.id, [], newMedicoIds, 'medicos', 'leads_ids');
-                await syncAssociations(docRef.id, [], newMembroIds, 'membrosclh', 'leads_ids');
-                alert('Lead guardada e associada!');
-                resetLeadForm();
-                if (currentEditId) await initializeActionEditor(currentEditId);
-            }
-        } catch (error) { console.error("Erro ao guardar lead: ", error); alert('Ocorreu um erro.'); }
-    });
-    
-    document.getElementById('form-pedido')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const editId = e.target.dataset.editId;
-        const newMembroIds = document.getElementById('pedido-membros-container').getSelectedIds();
-
-        const pedidoData = { membro_ids: newMembroIds };
-
-        try {
-            if (editId) {
-                const pedidoRef = doc(db, 'pedidos', editId);
-                const docBeforeSnap = await getDoc(pedidoRef);
-                const dataBefore = docBeforeSnap.data();
-                await updateDoc(pedidoRef, pedidoData);
-                await syncAssociations(editId, dataBefore.membro_ids || [], newMembroIds, 'membrosclh', 'pedidos_ids');
-                alert('Pedido atualizado e associações sincronizadas!');
-            } else {
-                pedidoData.criado_em = new Date();
-                const docRef = await addDoc(collection(db, 'pedidos'), pedidoData);
-                await syncAssociations(docRef.id, [], newMembroIds, 'membrosclh', 'pedidos_ids');
-                alert('Pedido guardado e associado!');
-                e.target.reset();
-                document.getElementById('pedido-membros-container').setSelectedIds([]);
-            }
-        } catch (error) { console.error("Erro ao guardar pedido: ", error); alert('Ocorreu um erro.'); }
-    });
-    
-    handleSimpleCreate('form-servico', 'servicos', 's-nome');
-    handleSimpleCreate('form-clh', 'clh', 'clh-nome');
-    handleSimpleCreate('form-especialidade', 'especialidade', 'esp-nome');
-    handleSimpleCreate('form-congregacao', 'congregacoes', 'cong-nome', () => ({ cidade: document.getElementById('cong-cidade')?.value }));
-
-    // 2. CARREGAR DADOS DA FIREBASE (CACHE)
-    [hospitaisCache, servicosCache, especialidadesCache, membrosCache, clhCache, congregacoesCache, medicosCache, pacientesCache] = await Promise.all([
-        populateDataCache('hospitais', 'nome'),
-        populateDataCache('servicos', 'nome'),
-        populateDataCache('especialidade', 'nome'),
-        populateDataCache('membrosclh', 'nome'),
-        populateDataCache('clh', 'nome'),
-        populateDataCache('congregacoes', 'nome'),
-        populateMedicosCache(),
-        populateDataCache('pacientes', 'nome')
-    ]);
-
-    // 3. INICIALIZAR COMPONENTES DINÂMICOS
-    const populateSelect = (selectId, data, prompt) => {
-        const select = document.getElementById(selectId);
-        if (!select) return;
-        select.innerHTML = `<option value="">${prompt}</option>`;
-        data.forEach(item => {
-            const option = document.createElement('option');
-            option.value = item.id;
-            option.textContent = item.nome;
-            select.appendChild(option);
         });
-    };
-    
-    populateSelect('lead-servico', servicosCache, 'Selecione...');
-    populateSelect('m-congregacao', congregacoesCache, 'Selecione uma congregação...');
-    populateSelect('p-congregacao', congregacoesCache, 'Selecione uma congregação...');
-    
-    initMultiSearchSelect('d-especialidades-container', especialidadesCache);
-    initMultiSearchSelect('d-sub-especialidades-container', especialidadesCache);
-    initMultiSearchSelect('atuacao-medicos-container', medicosCache);
-    initMultiSearchSelect('lead-medicos-container', medicosCache);
-    initMultiSearchSelect('atuacao-membros-container', membrosCache);
-    initMultiSearchSelect('lead-membros-container', membrosCache);
-    initMultiSearchSelect('pedido-membros-container', membrosCache);
-    initMultiSearchSelect('m-hospitais-container', hospitaisCache);
-    initMultiSearchSelect('h-servicos-container', servicosCache);
-    initMultiSearchSelect('h-responsaveis-container', membrosCache);
-    initMultiSearchSelect('d-resp-clh-container', membrosCache);
-    initMultiSearchSelect('atuacao-pacientes-container', pacientesCache);
 
-    makeSelectSearchable(document.getElementById('h-clh-searchable-container'), clhCache);
-    makeSelectSearchable(document.getElementById('d-clh-searchable-container'), clhCache);
-    makeSelectSearchable(document.getElementById('d-congregacao-searchable-container'), congregacoesCache);
-    makeSelectSearchable(document.getElementById('lead-hospital-container'), hospitaisCache);
-    
-    // 4. EXECUTAR LÓGICA PRINCIPAL DA PÁGINA
-    const params = new URLSearchParams(window.location.search);
-    currentEditType = params.get('edit');
-    currentEditId = params.get('id');
+            document.getElementById('form-membro')?.addEventListener('submit', async e => {
+            e.preventDefault();
+            const initialEmail = document.querySelector('#tab-membros .initial-input[type="email"]').value.trim();
+            const allEmails = [initialEmail, ...getDynamicInputValues('m-emails-list')].filter(Boolean);
+            const initialTel = document.querySelector('#tab-membros .initial-input[type="tel"]').value.trim();
+            const allTels = [initialTel, ...getDynamicInputValues('m-telemoveis-list')].filter(Boolean);
+            const grupos = Array.from(document.querySelectorAll('#m-grupos-list .input-group')).map(g => ({
+                tipo: g.querySelector('.m-grupo-tipo').value,
+                data_entrada: g.querySelector('.m-grupo-data-entrada').value,
+                data_saida: g.querySelector('.m-grupo-data-saida').value
+            })).filter(g => g.tipo);
+                   const membroData = {
+                nome: document.getElementById('m-nome').value.trim(),
+                nome_completo: document.getElementById('m-nome-completo').value.trim(),
+                genero: document.getElementById('m-genero').value, congregacao_id: document.getElementById('m-congregacao').value,
+                ativo: document.getElementById('m-ativo').value === 'sim',
+                hospitais_responsabilidade_ids: document.getElementById('m-hospitais-container').getSelectedIds(),
+                grupos: grupos, morada: document.getElementById('m-morada').value.trim(),
+                emails: allEmails, telemoveis: allTels, foto_url: document.getElementById('m-foto-link').value.trim(),
+                cartao_aer: document.getElementById('m-cartao-aer').value,
+                recebe_mailings_dih: document.getElementById('m-mailings').value === 'sim',
+            };
 
-    if (currentEditType === 'medico_acao' && currentEditId) {
-        const container = document.querySelector('.container');
-        container?.classList.add('action-edit-mode');
-        const abasBloqueadas = ['hospitais', 'membros', 'servicos', 'clh', 'congregacoes', 'especialidades', 'pacientes'];
-        abasBloqueadas.forEach(tabId => {
-            document.querySelector(`.tab-link[data-tab="${tabId}"]`)?.classList.add('locked');
+            try {
+                const newHospitalIds = membroData.hospitais_responsabilidade_ids;
+                if (currentEditId && currentEditType === 'membro') {
+                    const membroRef = doc(db, "membrosclh", currentEditId);
+                    const docBeforeSnap = await getDoc(membroRef);
+                    const dataBefore = docBeforeSnap.data();
+                    const oldHospitalIds = dataBefore.hospitais_responsabilidade_ids || [];
+                    await updateDoc(membroRef, membroData);
+                    await syncAssociations(currentEditId, oldHospitalIds, newHospitalIds, 'hospitais', 'responsavel_ids');
+                    alert("Membro atualizado e associações sincronizadas com sucesso!");
+                    window.location.href = 'lista_membros.html';
+                } else {
+                    membroData.criado_em = new Date();
+                    const docRef = await addDoc(collection(db, "membrosclh"), membroData);
+                    await syncAssociations(docRef.id, [], newHospitalIds, 'hospitais', 'responsavel_ids');
+                    alert("Membro guardado e associações criadas com sucesso!");
+                    e.target.reset();
+                    document.getElementById('m-emails-list').innerHTML = '';
+                    document.getElementById('m-telemoveis-list').innerHTML = '';
+                    document.getElementById('m-grupos-list').innerHTML = '';
+                    addGrupoInput();
+                    document.getElementById('m-hospitais-container').setSelectedIds([]);
+                }
+            } catch (err) {
+                console.error("Erro ao guardar membro:", err);
+                alert("Ocorreu um erro ao guardar o membro.");
+            }
         });
-        document.querySelector(`.tab-link[data-tab="medicos"]`)?.classList.add('unlocked');
-        document.querySelector(`.tab-link[data-tab="acao"]`)?.classList.add('unlocked');
-        const acaoTab = document.getElementById('tab-acao');
-        if (acaoTab) {
-            acaoTab.querySelectorAll('.edit-list-container').forEach(el => el.classList.remove('hidden'));
-            acaoTab.querySelectorAll('form').forEach(el => el.classList.add('hidden'));
-            acaoTab.querySelectorAll('#btn-show-form-atuacao, #btn-show-form-lead').forEach(el => el.classList.remove('hidden'));
-        }
-        setupFormToggle('form-atuacao', 'btn-show-form-atuacao', 'btn-cancel-atuacao', resetAtuacaoForm);
-        setupFormToggle('form-lead', 'btn-show-form-lead', 'btn-cancel-lead', resetLeadForm);
-        await loadAndPopulateMedicoForm(currentEditId);
-        document.getElementById('atuacao-medicos-container')?.setSelectedIds([currentEditId]);
-        document.getElementById('lead-medicos-container')?.setSelectedIds([currentEditId]);
-        switchToTab('acao');
-        await initializeActionEditor(currentEditId);
-    } 
-    else if (currentEditType === 'membro' && currentEditId) {
-        const container = document.querySelector('.container');
-        container?.classList.add('edit-mode');
-        switchToTab('membros');
-        await loadAndPopulateMembroForm(currentEditId);
-    } 
-    else if (currentEditType === 'medico' && currentEditId) {
-        const container = document.querySelector('.container');
-        container?.classList.add('edit-mode');
-        switchToTab('medicos');
-        await loadAndPopulateMedicoForm(currentEditId);
-    } 
-    else if (currentEditType === 'hospital' && currentEditId) {
-        const container = document.querySelector('.container');
-        container?.classList.add('edit-mode');
-        switchToTab('hospitais');
-        await loadAndPopulateHospitalForm(currentEditId);
-    }
-    if (!currentEditId) {
-        const tabMedicos = document.getElementById('tab-medicos');
-        if (tabMedicos && tabMedicos.querySelector('#d-moradas-list')) {
-             addMoradaInput();
-             addMoradaInput();
-        }
+            
+            document.getElementById('form-medico')?.addEventListener('submit', async e => {
+            e.preventDefault();
+            const medicoData = {
+                nome: document.getElementById('d-nome').value, nome_completo: document.getElementById('d-nome-completo').value,
+                cedula: document.getElementById('d-cedula').value, imagem_url: document.getElementById('d-imagem-link').value,
+                genero: document.getElementById('d-genero').value, cooperador_situacao: document.getElementById('d-situacao-coop').value,
+                classificacao: document.getElementById('d-classificacao').value,
+                responsavel_clh_ids: document.getElementById('d-resp-clh-container').getSelectedIds(),
+                recebe_mailings_dih: document.getElementById('d-mailings').value === 'sim',
+                clh_id: document.getElementById('d-clh-value').value, congregacao_id: document.getElementById('d-congregacao-value').value
+            };
+            const initialEmail = document.querySelector('#tab-medicos .initial-input[type="email"]').value.trim();
+            medicoData.emails = [initialEmail, ...getDynamicInputValues('d-emails-list')].filter(Boolean);
+            const initialTel = document.querySelector('#tab-medicos .initial-input[type="tel"]').value.trim();
+            medicoData.telemoveis = [initialTel, ...getDynamicInputValues('d-telemoveis-list')].filter(Boolean);
+            medicoData.moradas = Array.from(document.querySelectorAll('#d-moradas-list .input-group')).map(m => ({
+                obs: m.querySelector('.d-morada-obs').value.trim(),
+                rua: m.querySelector('.d-morada-rua').value.trim()
+            })).filter(m => m.rua);
+            medicoData.especialidade_ids = document.getElementById('d-especialidades-container').getSelectedIds();
+            medicoData.sub_especialidade_ids = document.getElementById('d-sub-especialidades-container').getSelectedIds();
+            medicoData.posicoes = Array.from(document.querySelectorAll('#d-posicoes-list .input-group')).map(p => ({ 
+                hospital_id: p.querySelector('.posicao-hospital')?.value, servico_id: p.querySelector('.posicao-servico')?.value, 
+                cargo: p.querySelector('.posicao-cargo')?.value, 
+                horario: { dia: p.querySelector('.posicao-horario-dia')?.value, parte: p.querySelector('.posicao-horario-parte')?.value } 
+            })).filter(p => p.hospital_id);
+            medicoData.links = Array.from(document.querySelectorAll('#d-links-list .dynamic-input')).map(input => {
+                const url = input.value.trim();
+                if (!url) return null;
+                return { url: url, data_adicionado: input.dataset.date || new Date().toISOString() }; 
+            }).filter(Boolean);
+
+            try {
+                const newResponsibleMemberIds = medicoData.responsavel_clh_ids;
+                if (currentEditId && (currentEditType === 'medico' || currentEditType === 'medico_acao')) {
+                    const medicoRef = doc(db, "medicos", currentEditId);
+                    const docBeforeSnap = await getDoc(medicoRef);
+                    const dataBefore = docBeforeSnap.data();
+                    const oldResponsibleMemberIds = dataBefore.responsavel_clh_ids || [];
+                    await updateDoc(medicoRef, medicoData);
+                    await syncAssociations(currentEditId, oldResponsibleMemberIds, newResponsibleMemberIds, 'membrosclh', 'medicos_responsabilidade_ids');
+                    alert("Médico atualizado e associações sincronizadas com sucesso!");
+                    if (currentEditType === 'medico_acao') {
+                        switchToTab('acao');
+                    } else {
+                         window.location.href = `medico.html?id=${currentEditId}`;
+                    }
+                } else {
+                    medicoData.criado_em = new Date();
+                    const docRef = await addDoc(collection(db, "medicos"), medicoData);
+                    await syncAssociations(docRef.id, [], newResponsibleMemberIds, 'membrosclh', 'medicos_responsabilidade_ids');
+                    alert("Médico guardado e associações criadas com sucesso!");
+                    e.target.reset();
+                }
+            } catch (err) { 
+                console.error("ERRO DETALHADO ao guardar o médico ou sincronizar:", err); 
+                alert("Ocorreu um erro ao guardar o médico. Verifique a consola para mais detalhes."); 
+            }
+        });
+
+            document.getElementById('form-paciente')?.addEventListener('submit', async e => {
+                e.preventDefault();
+                
+                const nome = document.getElementById('p-nome').value.trim();
+                if (!nome) {
+                    alert("O campo 'Nome' é obrigatório.");
+                    return;
+                }
+
+                const initialEmail = document.querySelector('#tab-pacientes .initial-input[type="email"]').value.trim();
+                const allEmails = [initialEmail, ...getDynamicInputValues('p-emails-list')].filter(Boolean);
+                const initialTel = document.querySelector('#tab-pacientes .initial-input[type="tel"]').value.trim();
+                const allTels = [initialTel, ...getDynamicInputValues('p-telemoveis-list')].filter(Boolean);
+
+                try {
+                    const pacientesRef = collection(db, 'pacientes');
+                    const queries = [];
+                    if (allEmails.length > 0) {
+                        queries.push(getDocs(query(pacientesRef, where('nome', '==', nome), where('emails', 'array-contains-any', allEmails))));
+                    }
+                    if (allTels.length > 0) {
+                         queries.push(getDocs(query(pacientesRef, where('nome', '==', nome), where('telemoveis', 'array-contains-any', allTels))));
+                    }
+
+                    if (queries.length > 0) {
+                        const results = await Promise.all(queries);
+                        const hasDuplicates = results.some(snapshot => !snapshot.empty);
+                        if (hasDuplicates) {
+                            const proceed = confirm("AVISO: Já parece existir um paciente com este Nome e Email/Telemóvel. Deseja continuar e criar na mesma?");
+                            if (!proceed) { return; }
+                        }
+                    }
+                    
+                    const pacienteData = {
+                        nome: nome, nome_completo: document.getElementById('p-nome-completo').value.trim(),
+                        genero: document.getElementById('p-genero').value, congregacao_id: document.getElementById('p-congregacao').value,
+                        emails: allEmails, telemoveis: allTels, criado_em: new Date()
+                    };
+
+                    await addDoc(pacientesRef, pacienteData);
+                    alert("Paciente guardado com sucesso!");
+                    e.target.reset();
+                    document.getElementById('p-emails-list').innerHTML = '';
+                    document.getElementById('p-telemoveis-list').innerHTML = '';
+
+                } catch (err) {
+                    console.error("Erro ao guardar o paciente:", err);
+                    alert("Ocorreu um erro ao guardar o paciente.");
+                }
+            });
+
+            document.getElementById('form-atuacao')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const editId = e.target.dataset.editId;
+                const newMedicoIds = document.getElementById('atuacao-medicos-container').getSelectedIds();
+                const newMembroIds = document.getElementById('atuacao-membros-container').getSelectedIds();
+                const newPacienteIds = document.getElementById('atuacao-pacientes-container').getSelectedIds();
+                
+                const atuacaoData = {
+                    membro_ids: newMembroIds, medico_ids: newMedicoIds, paciente_ids: newPacienteIds,
+                    ordem: document.getElementById('atuacao-ordem').value, tipo: document.getElementById('atuacao-tipo').value,
+                    data: document.getElementById('atuacao-data').value, quantidade: document.getElementById('atuacao-quantidade').value,
+                    observacoes: document.getElementById('atuacao-obs').value
+                };
+
+                try {
+                    if (editId) {
+                        const atuacaoRef = doc(db, 'atuacoes', editId);
+                        const docBeforeSnap = await getDoc(atuacaoRef);
+                        const dataBefore = docBeforeSnap.data();
+                        await updateDoc(atuacaoRef, atuacaoData);
+                        await syncAssociations(editId, dataBefore.medico_ids || [], newMedicoIds, 'medicos', 'atuacoes_ids');
+                        await syncAssociations(editId, dataBefore.membro_ids || [], newMembroIds, 'membrosclh', 'atuacoes_ids');
+                        await syncAssociations(editId, dataBefore.paciente_ids || [], newPacienteIds, 'pacientes', 'atuacoes_ids');
+                        alert('Atuação atualizada e associações sincronizadas!');
+                        window.location.href = `medico.html?id=${currentEditId}`;
+                    } else {
+                        atuacaoData.criado_em = new Date();
+                        const docRef = await addDoc(collection(db, 'atuacoes'), atuacaoData);
+                        await syncAssociations(docRef.id, [], newMedicoIds, 'medicos', 'atuacoes_ids');
+                        await syncAssociations(docRef.id, [], newMembroIds, 'membrosclh', 'atuacoes_ids');
+                        await syncAssociations(docRef.id, [], newPacienteIds, 'pacientes', 'atuacoes_ids');
+                        alert('Atuação guardada e associada!');
+                        resetAtuacaoForm();
+                        if (currentEditId) await initializeActionEditor(currentEditId);
+                    }
+                } catch (error) { 
+                    console.error("Erro ao guardar atuação: ", error); 
+                    alert('Ocorreu um erro ao guardar a atuação.'); 
+                }
+            });
+
+            document.getElementById('form-lead')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const editId = e.target.dataset.editId;
+                const newMedicoIds = document.getElementById('lead-medicos-container').getSelectedIds();
+                const newMembroIds = document.getElementById('lead-membros-container').getSelectedIds();
+
+                const leadData = {
+                    hospital_id: document.getElementById('lead-hospital-value').value, data: document.getElementById('lead-data').value,
+                    tipo: document.getElementById('lead-tipo').value, medico_ids: newMedicoIds,
+                    membro_ids: newMembroIds, descricao: document.getElementById('lead-descricao').value, 
+                    servico_id: document.getElementById('lead-servico').value, status: document.getElementById('lead-status').value, 
+                    fechado: document.getElementById('lead-fechado').value,
+                };
+
+                try {
+                    if (editId) {
+                        const leadRef = doc(db, 'leads', editId);
+                        const docBeforeSnap = await getDoc(leadRef);
+                        const dataBefore = docBeforeSnap.data();
+                        await updateDoc(leadRef, leadData);
+                        await syncAssociations(editId, dataBefore.medico_ids || [], newMedicoIds, 'medicos', 'leads_ids');
+                        await syncAssociations(editId, dataBefore.membro_ids || [], newMembroIds, 'membrosclh', 'leads_ids');
+                        alert('Lead atualizada e associações sincronizadas!');
+                        window.location.href = `medico.html?id=${currentEditId}`;
+                    } else {
+                        leadData.criado_em = new Date();
+                        const docRef = await addDoc(collection(db, 'leads'), leadData);
+                        await syncAssociations(docRef.id, [], newMedicoIds, 'medicos', 'leads_ids');
+                        await syncAssociations(docRef.id, [], newMembroIds, 'membrosclh', 'leads_ids');
+                        alert('Lead guardada e associada!');
+                        resetLeadForm();
+                        if (currentEditId) await initializeActionEditor(currentEditId);
+                    }
+                } catch (error) { console.error("Erro ao guardar lead: ", error); alert('Ocorreu um erro.'); }
+            });
+            
+            document.getElementById('form-pedido')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const editId = e.target.dataset.editId;
+                const newMembroIds = document.getElementById('pedido-membros-container').getSelectedIds();
+
+                const pedidoData = { membro_ids: newMembroIds };
+
+                try {
+                    if (editId) {
+                        const pedidoRef = doc(db, 'pedidos', editId);
+                        const docBeforeSnap = await getDoc(pedidoRef);
+                        const dataBefore = docBeforeSnap.data();
+                        await updateDoc(pedidoRef, pedidoData);
+                        await syncAssociations(editId, dataBefore.membro_ids || [], newMembroIds, 'membrosclh', 'pedidos_ids');
+                        alert('Pedido atualizado e associações sincronizadas!');
+                    } else {
+                        pedidoData.criado_em = new Date();
+                        const docRef = await addDoc(collection(db, 'pedidos'), pedidoData);
+                        await syncAssociations(docRef.id, [], newMembroIds, 'membrosclh', 'pedidos_ids');
+                        alert('Pedido guardado e associado!');
+                        e.target.reset();
+                        document.getElementById('pedido-membros-container').setSelectedIds([]);
+                    }
+                } catch (error) { console.error("Erro ao guardar pedido: ", error); alert('Ocorreu um erro.'); }
+            });
+            
+            handleSimpleCreate('form-servico', 'servicos', 's-nome');
+            handleSimpleCreate('form-clh', 'clh', 'clh-nome');
+            handleSimpleCreate('form-especialidade', 'especialidade', 'esp-nome');
+            handleSimpleCreate('form-congregacao', 'congregacoes', 'cong-nome', () => ({ cidade: document.getElementById('cong-cidade')?.value }));
+
+            // 2. CARREGAR DADOS DA FIREBASE (CACHE)
+            [hospitaisCache, servicosCache, especialidadesCache, membrosCache, clhCache, congregacoesCache, medicosCache, pacientesCache] = await Promise.all([
+                populateDataCache('hospitais', 'nome'),
+                populateDataCache('servicos', 'nome'),
+                populateDataCache('especialidade', 'nome'),
+                populateDataCache('membrosclh', 'nome'),
+                populateDataCache('clh', 'nome'),
+                populateDataCache('congregacoes', 'nome'),
+                populateMedicosCache(),
+                populateDataCache('pacientes', 'nome')
+            ]);
+
+            // 3. INICIALIZAR COMPONENTES DINÂMICOS
+            const populateSelect = (selectId, data, prompt) => {
+                const select = document.getElementById(selectId);
+                if (!select) return;
+                select.innerHTML = `<option value="">${prompt}</option>`;
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.nome;
+                    select.appendChild(option);
+                });
+            };
+            
+            populateSelect('lead-servico', servicosCache, 'Selecione...');
+            populateSelect('m-congregacao', congregacoesCache, 'Selecione uma congregação...');
+            populateSelect('p-congregacao', congregacoesCache, 'Selecione uma congregação...');
+            
+            initMultiSearchSelect('d-especialidades-container', especialidadesCache);
+            initMultiSearchSelect('d-sub-especialidades-container', especialidadesCache);
+            initMultiSearchSelect('atuacao-medicos-container', medicosCache);
+            initMultiSearchSelect('lead-medicos-container', medicosCache);
+            initMultiSearchSelect('atuacao-membros-container', membrosCache);
+            initMultiSearchSelect('lead-membros-container', membrosCache);
+            initMultiSearchSelect('pedido-membros-container', membrosCache);
+            initMultiSearchSelect('m-hospitais-container', hospitaisCache);
+            initMultiSearchSelect('h-servicos-container', servicosCache);
+            initMultiSearchSelect('h-responsaveis-container', membrosCache);
+            initMultiSearchSelect('d-resp-clh-container', membrosCache);
+            initMultiSearchSelect('atuacao-pacientes-container', pacientesCache);
+
+            makeSelectSearchable(document.getElementById('h-clh-searchable-container'), clhCache);
+            makeSelectSearchable(document.getElementById('d-clh-searchable-container'), clhCache);
+            makeSelectSearchable(document.getElementById('d-congregacao-searchable-container'), congregacoesCache);
+            makeSelectSearchable(document.getElementById('lead-hospital-container'), hospitaisCache);
+            
+            // 4. EXECUTAR LÓGICA PRINCIPAL DA PÁGINA
+            const params = new URLSearchParams(window.location.search);
+            currentEditType = params.get('edit');
+            currentEditId = params.get('id');
+
+            if (currentEditType === 'medico_acao' && currentEditId) {
+                const container = document.querySelector('.container');
+                container?.classList.add('action-edit-mode');
+                const abasBloqueadas = ['hospitais', 'membros', 'servicos', 'clh', 'congregacoes', 'especialidades', 'pacientes'];
+                abasBloqueadas.forEach(tabId => {
+                    document.querySelector(`.tab-link[data-tab="${tabId}"]`)?.classList.add('locked');
+                });
+                document.querySelector(`.tab-link[data-tab="medicos"]`)?.classList.add('unlocked');
+                document.querySelector(`.tab-link[data-tab="acao"]`)?.classList.add('unlocked');
+                const acaoTab = document.getElementById('tab-acao');
+                if (acaoTab) {
+                    acaoTab.querySelectorAll('.edit-list-container').forEach(el => el.classList.remove('hidden'));
+                    acaoTab.querySelectorAll('form').forEach(el => el.classList.add('hidden'));
+                    acaoTab.querySelectorAll('#btn-show-form-atuacao, #btn-show-form-lead').forEach(el => el.classList.remove('hidden'));
+                }
+                setupFormToggle('form-atuacao', 'btn-show-form-atuacao', 'btn-cancel-atuacao', resetAtuacaoForm);
+                setupFormToggle('form-lead', 'btn-show-form-lead', 'btn-cancel-lead', resetLeadForm);
+                await loadAndPopulateMedicoForm(currentEditId);
+                document.getElementById('atuacao-medicos-container')?.setSelectedIds([currentEditId]);
+                document.getElementById('lead-medicos-container')?.setSelectedIds([currentEditId]);
+                switchToTab('acao');
+                await initializeActionEditor(currentEditId);
+            } 
+            else if (currentEditType === 'membro' && currentEditId) {
+                const container = document.querySelector('.container');
+                container?.classList.add('edit-mode');
+                switchToTab('membros');
+                await loadAndPopulateMembroForm(currentEditId);
+            } 
+            else if (currentEditType === 'medico' && currentEditId) {
+                const container = document.querySelector('.container');
+                container?.classList.add('edit-mode');
+                switchToTab('medicos');
+                await loadAndPopulateMedicoForm(currentEditId);
+            } 
+            else if (currentEditType === 'hospital' && currentEditId) {
+                const container = document.querySelector('.container');
+                container?.classList.add('edit-mode');
+                switchToTab('hospitais');
+                await loadAndPopulateHospitalForm(currentEditId);
+            }
+            if (!currentEditId) {
+                const tabMedicos = document.getElementById('tab-medicos');
+                if (tabMedicos && tabMedicos.querySelector('#d-moradas-list')) {
+                     addMoradaInput();
+                     addMoradaInput();
+                }
+            }
+        } // Fim da função initializePage
+
+        // Inicia o carregamento da página E o delay mínimo ao mesmo tempo.
+        Promise.all([
+            initializePage(),
+            minimumDelayPromise
+        ]).then(() => {
+            // Isto só executa quando AMBOS terminarem.
+            loader.classList.add('hidden');
+        }).catch(error => {
+            console.error("Erro crítico ao inicializar a página:", error);
+            loader.classList.add('hidden');
+            // Opcional: mostrar uma mensagem de erro no corpo da página.
+            document.body.innerHTML = '<h1>Ocorreu um erro crítico ao carregar a página. Tente novamente mais tarde.</h1>';
+        });
+
+    } else {
+        // FALHA: Utilizador não logado. Redirecionar para a página de login.
+        window.location.href = 'index.html';
     }
 });
 
