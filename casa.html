@@ -5,86 +5,93 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meus Casos</title>
     
-    <!-- Link para a biblioteca de ícones Font Awesome (para o menu) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
         :root {
-            --primary-color: #0d6efd;
-            --secondary-color: #adb5bd;
-            --background-color: #212529;
-            --surface-color: #2b3035;
-            --text-color: #dee2e6;
-            --border-color: #495057;
-            --blue-view: #0dcaf0;
+            --primary-color: #0d6efd; --secondary-color: #adb5bd; --background-color: #212529;
+            --surface-color: #2b3035; --text-color: #dee2e6; --border-color: #495057;
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 20px; }
         .container { max-width: 1400px; margin: auto; background: var(--surface-color); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        /* Estilo original do h1 restaurado */
         h1 { color: #fff; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
         
-        #cases-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .case-card {
-            background-color: #343a40;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            overflow: hidden;
-            transition: background-color 0.3s;
-        }
-
-        .card-summary {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        .card-summary:hover {
-            background-color: #3a4045;
-        }
-
+        #cases-list { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .case-card { background-color: #343a40; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; transition: background-color 0.3s; }
+        .card-summary { display: flex; align-items: center; padding: 15px; cursor: pointer; position: relative; }
+        .card-summary:hover { background-color: #3a4045; }
         .card-info { flex-grow: 1; }
         .card-info .case-title { font-size: 1.2em; font-weight: 600; margin: 0; color: #fff; }
-
-        .card-summary::after {
-            content: '▾'; font-size: 1.5em; transition: transform 0.3s ease; margin-left: 15px;
-        }
+        .card-summary::after { content: '▾'; font-size: 1.5em; transition: transform 0.3s ease; margin-left: 15px; }
         .case-card.expanded .card-summary::after { transform: rotate(180deg); }
-
-        .card-details {
-            max-height: 0; overflow: hidden;
-            transition: max-height 0.4s ease-out, padding 0.4s ease-out;
-            padding: 0 20px; border-top: 1px solid var(--border-color);
-        }
-        
+        .card-details { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out, padding 0.4s ease-out; padding: 0 20px; border-top: 1px solid var(--border-color); }
         .case-card.expanded .card-details { max-height: 500px; padding: 20px; }
-
         .detail-item { margin: 0 0 12px 0; font-size: 0.95em; }
         .detail-item strong { color: var(--secondary-color); display: block; margin-bottom: 4px; }
-        .detail-item span { word-break: break-word; white-space: pre-wrap; }
+
+        #loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--background-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+            opacity: 1;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--surface-color);
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        #loader-overlay p {
+            font-size: 1.1em;
+            color: var(--text-color);
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #loader-overlay.hidden {
+            opacity: 0;
+            pointer-events: none; /* Impede interações com o overlay invisível */
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Meus Casos Ativos</h1>
-        
-        <div id="cases-list">
-            <p style="text-align: center;">A carregar os seus casos...</p>
-        </div>
+    <!-- Ecrã de Carregamento -->
+    <div id="loader-overlay">
+        <div class="spinner"></div>
+        <p>A verificar a sua sessão...</p>
     </div>
 
-    <!-- Placeholder onde o menu será carregado -->
-    <div id="bottom-menu-placeholder"></div>
+    <div class="container">
+        <!-- O título será adicionado dinamicamente ou pode ser fixo -->
+        <h1>Meus Casos</h1>
+        
+        <!-- A lista de casos será preenchida aqui -->
+        <div id="cases-list"></div>
 
-    <script type="module">
+        <!-- Placeholder onde o menu será carregado -->
+        <div id="bottom-menu-placeholder"></div>
+    </div>
+
+    <!-- CORREÇÃO: Adicionado o atributo 'defer' para garantir que o script só roda após o HTML ser carregado. -->
+    <script type="module" defer>
+        // Importações do Firebase SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
@@ -97,20 +104,99 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        // --- IMPORTANTE ---
-        // Simulação do ID do utilizador logado.
-        // Numa aplicação real, este ID viria de um sistema de autenticação (ex: Firebase Auth).
-        const currentUserId = "J0W41nWH1OlhT79sqWqR";
-
+        // Estas variáveis agora serão inicializadas corretamente pois o script roda depois do HTML.
         const casesListContainer = document.getElementById('cases-list');
+        const loader = document.getElementById('loader-overlay');
 
-        function renderCards(casesData) {
-            if (casesData.length === 0) {
-                casesListContainer.innerHTML = '<p style="text-align: center;">Você não tem casos ativos de momento.</p>';
-                return;
+        // O "PORTEIRO" DA PÁGINA
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                // SUCESSO: O utilizador está logado.
+                const minimumDelayPromise = new Promise(resolve => setTimeout(resolve, 1000));
+                
+                Promise.all([
+                    loadMyCases(user.uid),
+                    minimumDelayPromise
+                ]).then(() => {
+                    // Isto só executa quando AMBOS terminarem.
+                    loader.classList.add('hidden');
+                }).catch(error => {
+                    // Se houver um erro a carregar os dados, escondemos o loader e mostramos o erro.
+                    console.error("Erro no processo de carregamento:", error);
+                    casesListContainer.innerHTML = '<p style="text-align: center;">Ocorreu um erro ao carregar os seus casos.</p>';
+                    loader.classList.add('hidden');
+                });
+
+            } else {
+                // FALHA: O utilizador não está logado. Redirecionar.
+                window.location.href = 'index.html';
             }
+        });
 
+        async function loadMyCases(currentUserId) {
+            casesListContainer.innerHTML = '';
+            
+            try {
+                const [atuacoesSnap, pacientesSnap, medicosSnap] = await Promise.all([
+                    getDocs(collection(db, "atuacoes")),
+                    getDocs(collection(db, "pacientes")),
+                    getDocs(collection(db, "medicos"))
+                ]);
+                
+                const atuacoesMap = new Map(atuacoesSnap.docs.map(d => [d.id, d.data()]));
+                const pacientesMap = new Map(pacientesSnap.docs.map(d => [d.id, d.data()]));
+                const medicosMap = new Map(medicosSnap.docs.map(d => [d.id, d.data()]));
+
+                const memberRef = doc(db, "membrosclh", currentUserId);
+                const memberSnap = await getDoc(memberRef);
+
+                if (!memberSnap.exists()) { throw new Error("Membro não encontrado."); }
+
+                const memberData = memberSnap.data();
+                const myAtuacaoIds = memberData.atuacoes_ids || [];
+
+                if (myAtuacaoIds.length === 0) {
+                    casesListContainer.innerHTML = '<p style="text-align: center;">Você não tem casos ativos de momento.</p>';
+                    return;
+                }
+                
+                const myCases = myAtuacaoIds.map(atuacaoId => {
+                    const atuacao = atuacoesMap.get(atuacaoId);
+                    if (!atuacao) return null;
+
+                    const patientIds = atuacao.paciente_ids || [];
+                    const medicoIds = atuacao.medico_ids || [];
+                    const patient = patientIds.length > 0 ? pacientesMap.get(patientIds[0]) : null;
+                    const doctorNames = medicoIds.map(id => medicosMap.has(id) ? medicosMap.get(id).nome : null).filter(Boolean).join(', ');
+
+                    return {
+                        id: atuacaoId,
+                        displayDate: formatDate(atuacao.data),
+                        patientName: patient ? patient.nome : 'Paciente Desconhecido',
+                        patientFullName: patient ? patient.nome_completo : 'N/A',
+                        doctorNames: doctorNames || 'Nenhum médico associado',
+                        observations: atuacao.observacoes || '',
+                        rawDate: atuacao.data
+                    };
+                }).filter(Boolean);
+
+                myCases.sort((a, b) => b.rawDate.localeCompare(a.rawDate));
+                renderCards(myCases);
+
+            } catch (error) {
+                console.error("Erro ao carregar casos:", error);
+                casesListContainer.innerHTML = '<p style="text-align: center;">Ocorreu um erro ao carregar os seus casos.</p>';
+                throw error;
+            }
+        }
+        
+        function renderCards(casesData) {
+            if (casesData.length === 0) { 
+                casesListContainer.innerHTML = '<p style="text-align: center;">Você não tem casos ativos de momento.</p>'; 
+                return; 
+            }
             const cardsHtml = casesData.map(caseItem => `
                 <div class="case-card" data-id="${caseItem.id}">
                     <div class="card-summary">
@@ -124,97 +210,26 @@
                         <p class="detail-item"><strong>Médico(s) do Caso:</strong> <span>${caseItem.doctorNames || 'N/A'}</span></p>
                         <p class="detail-item"><strong>Observações:</strong> <span>${caseItem.observations || 'Nenhuma'}</span></p>
                     </div>
-                </div>
-            `).join('');
+                </div>`).join('');
             casesListContainer.innerHTML = cardsHtml;
         }
-        
+
         function formatDate(dateString) {
             if (!dateString || !dateString.includes('-')) return 'Data Inválida';
-            const parts = dateString.split('-'); // Espera "aaaa-mm-dd"
+            const parts = dateString.split('-');
             if (parts.length !== 3) return 'Data Inválida';
-            return `${parts[2]}/${parts[1]}/${parts[0]}`; // Retorna "dd/mm/aaaa"
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
 
-        async function loadMyCases() {
-            if (!currentUserId) {
-                casesListContainer.innerHTML = '<p style="text-align: center;">Erro: Utilizador não identificado.</p>';
-                return;
+        // Este listener agora funcionará corretamente.
+        casesListContainer.addEventListener('click', e => {
+            const summary = e.target.closest('.card-summary');
+            if (summary) {
+                summary.closest('.case-card').classList.toggle('expanded');
             }
-
-            try {
-                // 1. Obter todas as coleções necessárias para criar "Mapas" de consulta
-                const [atuacoesSnap, pacientesSnap, medicosSnap] = await Promise.all([
-                    getDocs(collection(db, "atuacoes")),
-                    getDocs(collection(db, "pacientes")),
-                    getDocs(collection(db, "medicos"))
-                ]);
-                
-                const atuacoesMap = new Map(atuacoesSnap.docs.map(d => [d.id, d.data()]));
-                const pacientesMap = new Map(pacientesSnap.docs.map(d => [d.id, d.data()]));
-                const medicosMap = new Map(medicosSnap.docs.map(d => [d.id, d.data()]));
-
-                // 2. Obter o documento do membro logado para encontrar os seus IDs de atuação
-                const memberRef = doc(db, "membrosclh", currentUserId);
-                const memberSnap = await getDoc(memberRef);
-
-                if (!memberSnap.exists()) {
-                    throw new Error("Membro não encontrado.");
-                }
-
-                const memberData = memberSnap.data();
-                const myAtuacaoIds = memberData.atuacoes_ids || [];
-
-                // 3. Processar apenas as atuações que pertencem ao membro
-                const myCases = myAtuacaoIds.map(atuacaoId => {
-                    const atuacao = atuacoesMap.get(atuacaoId);
-                    if (!atuacao) return null; // Ignora se a atuação não for encontrada
-
-                    const patientIds = atuacao.paciente_ids || [];
-                    const medicoIds = atuacao.medico_ids || [];
-
-                    const patient = patientIds.length > 0 ? pacientesMap.get(patientIds[0]) : null;
-                    
-                    const doctorNames = medicoIds
-                        .map(id => medicosMap.has(id) ? medicosMap.get(id).nome : null)
-                        .filter(Boolean)
-                        .join(', ');
-
-                    return {
-                        id: atuacaoId,
-                        displayDate: formatDate(atuacao.data),
-                        patientName: patient ? patient.nome : 'Paciente Desconhecido',
-                        patientFullName: patient ? patient.nome_completo : 'N/A',
-                        doctorNames: doctorNames || 'Nenhum médico associado',
-                        observations: atuacao.observacoes || '',
-                        rawDate: atuacao.data // Para ordenação
-                    };
-                }).filter(Boolean); // Remove quaisquer atuações nulas
-
-                // 4. Ordenar os casos pela data, do mais recente para o mais antigo
-                myCases.sort((a, b) => b.rawDate.localeCompare(a.rawDate));
-
-                renderCards(myCases);
-
-            } catch (error) {
-                console.error("Erro ao carregar casos:", error);
-                casesListContainer.innerHTML = '<p style="text-align: center;">Ocorreu um erro ao carregar os seus casos.</p>';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadMyCases();
-
-            casesListContainer.addEventListener('click', e => {
-                const summary = e.target.closest('.card-summary');
-                if (summary) {
-                    summary.closest('.case-card').classList.toggle('expanded');
-                }
-            });
         });
     </script>
     
-    <!-- Script que carrega e ativa o menu -->
     <script src="menu-loader.js"></script>
 </body>
 </html>
