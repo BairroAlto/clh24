@@ -86,6 +86,43 @@
             text-decoration: none;
         }
         
+        #loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--background-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease-out;
+    opacity: 1;
+}
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--surface-color);
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+#loader-overlay p {
+    font-size: 1.1em;
+    color: var(--text-color);
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+#loader-overlay.hidden {
+    opacity: 0;
+    pointer-events: none; /* Impede interações com o overlay invisível */
+}
+
         @media (max-width: 768px) {
             .tabs-container { overflow-x: auto; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none; }
             .tabs-container::-webkit-scrollbar { display: none; }
@@ -94,6 +131,11 @@
     </style>
 </head>
 <body>
+    <!-- NOVO: Ecrã de Carregamento -->
+    <div id="loader-overlay">
+        <div class="spinner"></div>
+        <p>A verificar a sua sessão...</p>
+    </div>
   
   <div class="search-wrapper">
     <input type="text" id="member-search-input" placeholder="Pesquisar membro por nome...">
@@ -107,6 +149,7 @@
  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
@@ -119,6 +162,7 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+const auth = getAuth(app);
 
     const mainContainer = document.getElementById('main-container');
     const silhouetteUrl = 'https://via.placeholder.com/100/495057/dee2e6?text=Foto'; 
@@ -387,23 +431,50 @@
     }
 
     // --- Ponto de Entrada ---
-    document.addEventListener('DOMContentLoaded', () => {
-        initializeSearch();
-        searchInput.addEventListener('input', handleSearchInput);
-        window.addEventListener('click', (e) => {
-            if (!searchResultsContainer.contains(e.target) && e.target !== searchInput) {
-                searchResultsContainer.style.display = 'none';
+  const loader = document.getElementById('loader-overlay');
+
+onAuthStateChanged(auth, user => {
+    if (user) {
+        // SUCESSO: Utilizador logado.
+        const minimumDelayPromise = new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Toda a lógica original da página agora está dentro desta função.
+        async function initializePage() {
+            initializeSearch();
+            searchInput.addEventListener('input', handleSearchInput);
+            window.addEventListener('click', (e) => {
+                if (!searchResultsContainer.contains(e.target) && e.target !== searchInput) {
+                    searchResultsContainer.style.display = 'none';
+                }
+            });
+            const params = new URLSearchParams(window.location.search);
+            const memberId = params.get('id');
+            if (!memberId) {
+                renderError("ID do membro não fornecido na URL.");
+                mainContainer.style.display = 'none';
+                return;
             }
-        });
-        const params = new URLSearchParams(window.location.search);
-        const memberId = params.get('id');
-        if (!memberId) {
-            renderError("ID do membro não fornecido na URL.");
-            mainContainer.style.display = 'none';
-            return;
+            await loadMemberProfile(memberId);
         }
-        loadMemberProfile(memberId);
-    });
+
+        // Inicia o carregamento da página E o delay mínimo ao mesmo tempo.
+        Promise.all([
+            initializePage(),
+            minimumDelayPromise
+        ]).then(() => {
+            // Isto só executa quando AMBOS terminarem.
+            loader.classList.add('hidden');
+        }).catch(error => {
+            console.error("Erro crítico ao inicializar a página:", error);
+            loader.classList.add('hidden');
+            renderError("Ocorreu um erro crítico ao carregar a página.");
+        });
+
+    } else {
+        // FALHA: Utilizador não logado. Redirecionar.
+        window.location.href = 'index.html';
+    }
+});
 </script>
 </body>
 </html>
