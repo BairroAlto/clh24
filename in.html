@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Nova Conta</title>
+    <style>
+        :root {
+            --primary-color: #0d6efd; --secondary-color: #adb5bd; --background-color: #212529;
+            --surface-color: #2b3035; --text-color: #dee2e6; --border-color: #495057; --error-color: #dc3545;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background-color); color: var(--text-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .register-container { background-color: var(--surface-color); padding: 40px; border-radius: 8px; border: 1px solid var(--border-color); width: 100%; max-width: 400px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
+        h1 { text-align: center; margin-top: 0; margin-bottom: 30px; color: #fff; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 8px; font-size: 0.9em; color: var(--secondary-color); }
+        .input-group input { width: 100%; padding: 12px; background-color: #343a40; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); font-size: 1em; box-sizing: border-box; transition: border-color 0.3s, box-shadow 0.3s; }
+        .input-group input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25); }
+        .register-button { width: 100%; padding: 12px; background-color: var(--primary-color); border: none; border-radius: 6px; color: #fff; font-size: 1.1em; font-weight: 600; cursor: pointer; transition: background-color 0.3s; margin-top: 10px; }
+        .register-button:hover { background-color: #0b5ed7; }
+        .register-button:disabled { background-color: #555; cursor: not-allowed; }
+        .error-message { color: var(--error-color); text-align: center; margin-top: 20px; font-size: 0.9em; display: none; }
+        .form-toggle { text-align: center; margin-top: 25px; }
+        .form-toggle a { color: var(--primary-color); text-decoration: none; cursor: pointer; }
+        .form-toggle a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <h1>Criar Nova Conta</h1>
+        <form id="register-form">
+            <div class="input-group">
+                <label for="register-email">Email</label>
+                <input type="email" id="register-email" placeholder="O seu email de acesso" required>
+            </div>
+            <div class="input-group">
+                <label for="register-password">Palavra-passe (mín. 6 caracteres)</label>
+                <input type="password" id="register-password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="register-button">Registar</button>
+            <p class="error-message" id="register-error"></p>
+        </form>
+        <div class="form-toggle">
+            <p>Já tem uma conta? <a href="index.html">Entre aqui.</a></p>
+        </div>
+    </div>
+
+    <script type="module">
+        // Importações do Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, query, where, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        // --- A sua configuração do Firebase ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
+            authDomain: "medical-5baa0.firebaseapp.com",
+            projectId: "medical-5baa0",
+            storageBucket: "medical-5baa0.appspot.com",
+            messagingSenderId: "900547659131",
+            appId: "1:900547659131:web:708f90f8fa1500d76569de"
+        };
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // LÓGICA DE REGISTO
+        const registerForm = document.getElementById('register-form');
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('register-email').value.trim();
+            const password = document.getElementById('register-password').value;
+            const errorElement = document.getElementById('register-error');
+            const registerButton = registerForm.querySelector('.register-button');
+
+            errorElement.style.display = 'none';
+            registerButton.disabled = true;
+            registerButton.textContent = 'A verificar...';
+
+            try {
+                // --- PASSO 1: VERIFICAR SE O EMAIL JÁ EXISTE NO FIRESTORE ---
+                const membersRef = collection(db, "membrosclh");
+                // Procurar por qualquer documento que contenha este email no seu array 'emails'
+                const q = query(membersRef, where("emails", "array-contains", email));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    // Se a query retornar resultados, o email já está em uso na base de dados.
+                    throw new Error("auth/email-already-in-use-firestore");
+                }
+
+                registerButton.textContent = 'A registar...';
+
+                // --- PASSO 2: CRIAR O UTILIZADOR NO FIREBASE AUTHENTICATION ---
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // --- PASSO 3: CRIAR O DOCUMENTO NA COLEÇÃO 'membrosclh' COM OS NOVOS CAMPOS ---
+                await setDoc(doc(db, "membrosclh", user.uid), {
+                    nome: email, // Usamos o email como nome padrão
+                    emails: [email],
+                    emailLogin: email,    // <-- NOVO: O campo de email para login
+                    rule: "membro",       // <-- NOVO: A regra padrão
+                    atuacoes_ids: []      // A lista de casos começa sempre vazia
+                });
+
+                // --- PASSO 4: REDIRECIONAR PARA A PÁGINA PRINCIPAL ---
+                window.location.href = 'meus-casos.html';
+
+            } catch (error) {
+                console.error("Erro de registo:", error.message);
+                if (error.code === 'auth/email-already-in-use' || error.message === 'auth/email-already-in-use-firestore') {
+                    errorElement.textContent = 'Este email já está a ser utilizado.';
+                } else if (error.code === 'auth/weak-password') {
+                    errorElement.textContent = 'A palavra-passe deve ter pelo menos 6 caracteres.';
+                } else {
+                    errorElement.textContent = 'Ocorreu um erro ao criar a conta.';
+                }
+                errorElement.style.display = 'block';
+            } finally {
+                registerButton.disabled = false;
+                registerButton.textContent = 'Registar';
+            }
+        });
+    </script>
+</body>
+</html>
