@@ -107,9 +107,52 @@
         .detail-item { margin: 0 0 10px 0; font-size: 0.95em; }
         .detail-item strong { color: var(--secondary-color); display: block; margin-bottom: 3px; }
         .detail-item span { word-break: break-word; }
+
+        #loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--background-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease-out;
+    opacity: 1;
+}
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--surface-color);
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+#loader-overlay p {
+    font-size: 1.1em;
+    color: var(--text-color);
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+#loader-overlay.hidden {
+    opacity: 0;
+    pointer-events: none; /* Impede interações com o overlay invisível */
+}
     </style>
 </head>
 <body>
+    <!-- NOVO: Ecrã de Carregamento -->
+    <div id="loader-overlay">
+        <div class="spinner"></div>
+        <p>A verificar a sua sessão...</p>
+    </div>
+
     <div class="container">
         <h1>Lista de Médicos</h1>
         <!-- --- HTML MODIFICADO --- -->
@@ -131,7 +174,7 @@
         </div>
         
         <div id="doctors-list">
-            <p style="text-align: center;">A carregar médicos...</p>
+           <p style="text-align: center;">A verificar a sua sessão...</p>
         </div>
 
         <div id="show-more-container" style="text-align: center; padding: 20px;">
@@ -142,8 +185,9 @@
     <div id="bottom-menu-placeholder"></div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
@@ -156,10 +200,75 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
     let allDoctorsData = [];
     const ITEMS_PER_PAGE = 50;
     let visibleItemsCount = ITEMS_PER_PAGE;
+    const loader = document.getElementById('loader-overlay');
+
+    onAuthStateChanged(auth, user => {
+    if (user) {
+        // SUCESSO: Utilizador logado.
+        const minimumDelayPromise = new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Inicia o carregamento da página E o delay mínimo ao mesmo tempo.
+        Promise.all([
+            initializePage(),
+            minimumDelayPromise
+        ]).then(() => {
+            // Isto só executa quando AMBOS terminarem.
+            loader.classList.add('hidden');
+        }).catch(error => {
+            console.error("Erro crítico ao inicializar a página:", error);
+            loader.classList.add('hidden');
+            document.getElementById('doctors-list').innerHTML = '<p style="text-align: center;">Ocorreu um erro crítico ao carregar a página.</p>';
+        });
+
+    } else {
+        // FALHA: Utilizador não está logado. Redirecionar.
+        window.location.href = 'index.html';
+    }
+});
+
+    // --- NOVO: Função que encapsula a lógica original da página ---
+    async function initializePage() {
+        const doctors = await loadAndPrepareData();
+        const searchInput = document.getElementById('search-input');
+        const cedulaInput = document.getElementById('cedula-input');
+        const especialidadesFilter = document.getElementById('especialidades-filter');
+        const subEspecialidadesFilter = document.getElementById('sub-especialidades-filter');
+        const hospitaisFilter = document.getElementById('hospitais-filter');
+        const servicosFilter = document.getElementById('servicos-filter');
+        const showMoreBtn = document.getElementById('show-more-btn');
+        const toggleBtn = document.getElementById('toggle-filters-btn');
+        const advancedFilters = document.getElementById('advanced-filters-content');
+        const doctorsListContainer = document.getElementById('doctors-list');
+        
+        const refreshView = () => {
+            const getSelectedIds = (container) => container ? [...container.querySelectorAll('input:checked')].map(cb => cb.value) : [];
+            const filters = {
+                searchTerm: searchInput ? searchInput.value.toLowerCase() : '', cedulaTerm: cedulaInput ? cedulaInput.value.toLowerCase() : '',
+                selectedSpecialties: getSelectedIds(especialidadesFilter), selectedSubSpecialties: getSelectedIds(subEspecialidadesFilter),
+                selectedHospitals: getSelectedIds(hospitaisFilter), selectedServices: getSelectedIds(servicosFilter),
+            };
+            updateDisplay(doctors, filters);
+        };
+        
+        if(searchInput) searchInput.addEventListener('input', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
+        if(cedulaInput) cedulaInput.addEventListener('input', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
+        if(especialidadesFilter) especialidadesFilter.addEventListener('change', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
+        if(subEspecialidadesFilter) subEspecialidadesFilter.addEventListener('change', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
+        if(hospitaisFilter) hospitaisFilter.addEventListener('change', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
+        if(servicosFilter) servicosFilter.addEventListener('change', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
+        if(showMoreBtn) showMoreBtn.addEventListener('click', () => { visibleItemsCount += ITEMS_PER_PAGE; refreshView(); });
+        if(toggleBtn && advancedFilters) toggleBtn.addEventListener('click', () => { const isHidden = window.getComputedStyle(advancedFilters).display === 'none'; advancedFilters.style.display = isHidden ? 'flex' : 'none'; });
+        if(doctorsListContainer) doctorsListContainer.addEventListener('click', e => { const summary = e.target.closest('.card-summary'); if (summary && !e.target.closest('a')) { summary.closest('.doctor-card').classList.toggle('expanded'); } });
+        document.querySelectorAll('.multi-select-button').forEach(button => { button.addEventListener('click', (e) => { e.stopPropagation(); const dropdown = button.nextElementSibling; const isCurrentlyOpen = dropdown.style.display === 'block'; document.querySelectorAll('.multi-select-dropdown').forEach(d => d.style.display = 'none'); if (!isCurrentlyOpen) dropdown.style.display = 'block'; }); });
+        document.addEventListener('click', (e) => { if (!e.target.closest('.multi-select-container')) { document.querySelectorAll('.multi-select-dropdown').forEach(d => d.style.display = 'none'); } });
+        
+        refreshView();
+    }
 
     function updateDisplay(doctorsData, filters) {
         const filteredData = doctorsData.filter(doc => {
@@ -265,40 +374,7 @@
             return allDoctorsData;
         } catch (error) { console.error("Erro ao carregar dados:", error); document.getElementById('doctors-list').innerHTML = '<p style="text-align: center;">Ocorreu um erro ao carregar os dados.</p>'; return []; }
     }
-    document.addEventListener('DOMContentLoaded', async () => {
-        const doctors = await loadAndPrepareData();
-        const searchInput = document.getElementById('search-input');
-        const cedulaInput = document.getElementById('cedula-input');
-        const especialidadesFilter = document.getElementById('especialidades-filter');
-        const subEspecialidadesFilter = document.getElementById('sub-especialidades-filter');
-        const hospitaisFilter = document.getElementById('hospitais-filter');
-        const servicosFilter = document.getElementById('servicos-filter');
-        const showMoreBtn = document.getElementById('show-more-btn');
-        const toggleBtn = document.getElementById('toggle-filters-btn');
-        const advancedFilters = document.getElementById('advanced-filters-content');
-        const doctorsListContainer = document.getElementById('doctors-list');
-        const refreshView = () => {
-            const getSelectedIds = (container) => container ? [...container.querySelectorAll('input:checked')].map(cb => cb.value) : [];
-            const filters = {
-                searchTerm: searchInput ? searchInput.value.toLowerCase() : '', cedulaTerm: cedulaInput ? cedulaInput.value.toLowerCase() : '',
-                selectedSpecialties: getSelectedIds(especialidadesFilter), selectedSubSpecialties: getSelectedIds(subEspecialidadesFilter),
-                selectedHospitals: getSelectedIds(hospitaisFilter), selectedServices: getSelectedIds(servicosFilter),
-            };
-            updateDisplay(doctors, filters);
-        };
-        if(searchInput) searchInput.addEventListener('input', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
-        if(cedulaInput) cedulaInput.addEventListener('input', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
-        if(especialidadesFilter) especialidadesFilter.addEventListener('change', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
-        if(subEspecialidadesFilter) subEspecialidadesFilter.addEventListener('change', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
-        if(hospitaisFilter) hospitaisFilter.addEventListener('change', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
-        if(servicosFilter) servicosFilter.addEventListener('change', () => { visibleItemsCount = ITEMS_PER_PAGE; refreshView(); });
-        if(showMoreBtn) showMoreBtn.addEventListener('click', () => { visibleItemsCount += ITEMS_PER_PAGE; refreshView(); });
-        if(toggleBtn && advancedFilters) toggleBtn.addEventListener('click', () => { const isHidden = window.getComputedStyle(advancedFilters).display === 'none'; advancedFilters.style.display = isHidden ? 'flex' : 'none'; });
-        if(doctorsListContainer) doctorsListContainer.addEventListener('click', e => { const summary = e.target.closest('.card-summary'); if (summary && !e.target.closest('a')) { summary.closest('.doctor-card').classList.toggle('expanded'); } });
-        document.querySelectorAll('.multi-select-button').forEach(button => { button.addEventListener('click', (e) => { e.stopPropagation(); const dropdown = button.nextElementSibling; const isCurrentlyOpen = dropdown.style.display === 'block'; document.querySelectorAll('.multi-select-dropdown').forEach(d => d.style.display = 'none'); if (!isCurrentlyOpen) dropdown.style.display = 'block'; }); });
-        document.addEventListener('click', (e) => { if (!e.target.closest('.multi-select-container')) { document.querySelectorAll('.multi-select-dropdown').forEach(d => d.style.display = 'none'); } });
-        refreshView();
-    });
+  
 </script>
     <script src="menu-loader.js"></script>
 </body>
