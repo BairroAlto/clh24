@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Perfil do Médico</title>
+
+    <!-- ADICIONADO: Font Awesome para os ícones do menu -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
     <style>
         :root {
             --primary-color: #0d6efd;
@@ -190,14 +194,17 @@
         <p>A verificar a sua sessão...</p>
     </div>
   
-  <div class="search-wrapper">
-    <input type="text" id="doctor-search-input" placeholder="Pesquisar médico por nome ou cédula...">
-    <div id="search-results"></div>
-  </div>
+   <div class="search-wrapper">
+        <input type="text" id="doctor-search-input" placeholder="Pesquisar médico por nome ou cédula...">
+        <div id="search-results"></div>
+    </div>
 
-  <div class="container" id="main-container">
-   <div class="loading">A verificar a sua sessão...</div>
-  </div>
+    <div class="container" id="main-container">
+        <!-- Preenchido via JS -->
+    </div>
+
+    <!-- ADICIONADO: Placeholder do Menu -->
+    <div id="bottom-menu-placeholder"></div>
 
  <script type="module">
    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -538,5 +545,8 @@ onAuthStateChanged(auth, user => {
     }
 });
 </script>
+<!-- ADICIONADO: Script do Menu -->
+<script src="menu-loader.js"></script>
+
 </body>
 </html> 
