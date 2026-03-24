@@ -242,6 +242,22 @@
 
     /* RESPONSIVIDADE */
     @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } }
+
+    /* Estilo para itens fechados na lista lateral */
+.toggle-list-item.closed {
+    border-left-color: var(--green-accent);
+    background-color: rgba(25, 135, 84, 0.15); /* Verde subtil para não ofuscar o texto */
+}
+
+.toggle-list-item.closed:hover {
+    background-color: rgba(25, 135, 84, 0.25);
+}
+
+/* Se estiver fechado E ativo (selecionado), mantemos o azul de seleção mas com a borda verde */
+.toggle-list-item.closed.active {
+    background-color: var(--primary-color);
+    border-left-color: var(--green-accent);
+}
 </style>
 
 </head>
@@ -561,10 +577,19 @@
                         <div class="form-group" style="margin-top:20px;"><label for="atuacao-medicos-search">Médico(s)</label><div id="atuacao-medicos-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-medicos-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
                         <div class="form-group" style="margin-top:20px;"><label for="atuacao-pacientes-search">Paciente(s)</label><div id="atuacao-pacientes-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-pacientes-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
                         <div class="form-group" style="margin-top:20px;"><label for="atuacao-obs">Observações</label><textarea id="atuacao-obs"></textarea></div>
+                   <div class="form-group" style="margin-top:20px;">
+    <label for="atuacao-fechado">Fechado?</label>
+    <select id="atuacao-fechado">
+        <option value="nao" selected>Não</option>
+        <option value="sim">Sim</option>
+    </select>
+</div>
                     </fieldset>
                     <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Atuação</button><button type="button" id="btn-cancel-atuacao" class="btn btn-cancel hidden">Cancelar Edição</button></div>
                 </form>
             </div>
+
+            
             
             <div id="tab-leads" class="tab-content" style="padding-top: 20px;">
                  <div class="edit-list-container hidden">
@@ -979,14 +1004,21 @@ function renderToggleList(containerId, items, titleField, textField, collectionN
         container.innerHTML = `<p>Nenhum item encontrado para este médico.</p>`;
         return;
     }
+    
     container.innerHTML = items
         .sort((a,b) => new Date(b.data[titleField]) - new Date(a.data[titleField]))
-        .map(item => `
-        <div class="toggle-list-item" data-id="${item.id}" data-collection="${collectionName}">
-            <strong>${formatDate(item.data[titleField])}</strong>
-            <p>${truncateText(item.data[textField])}</p>
-        </div>
-    `).join('');
+        .map(item => {
+            // Verifica se está fechado (funciona para Atuações e Leads)
+            const isClosed = item.data.fechado === true || item.data.fechado === "Sim";
+            const closedClass = isClosed ? 'closed' : '';
+
+            return `
+                <div class="toggle-list-item ${closedClass}" data-id="${item.id}" data-collection="${collectionName}">
+                    <strong>${formatDate(item.data[titleField])}</strong>
+                    <p>${truncateText(item.data[textField])}</p>
+                </div>
+            `;
+        }).join('');
 }
 
 function setupFormToggle(formId, showButtonId, cancelButtonId, resetFunction) {
@@ -1065,6 +1097,7 @@ function populateAtuacaoForm(data, id) {
     document.getElementById('atuacao-data').value = data.data || '';
     document.getElementById('atuacao-quantidade').value = data.quantidade || '';
     document.getElementById('atuacao-obs').value = data.observacoes || '';
+    document.getElementById('atuacao-fechado').value = data.fechado ? 'sim' : 'nao';
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -1080,6 +1113,7 @@ function resetAtuacaoForm() {
     document.getElementById('atuacao-medicos-container').setSelectedIds(currentEditId ? [currentEditId] : []);
     document.getElementById('atuacao-pacientes-container').setSelectedIds([]);
     document.querySelectorAll('#atuacoes-list .toggle-list-item.active').forEach(el => el.classList.remove('active'));
+    document.getElementById('atuacao-fechado').value = 'nao';
     if (currentEditType === 'medico_acao') {
         form.classList.add('hidden');
         document.getElementById('btn-show-form-atuacao').classList.remove('hidden');
@@ -1529,12 +1563,17 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
                 const newMedIds = document.getElementById('atuacao-medicos-container').getSelectedIds();
                 const newMemIds = document.getElementById('atuacao-membros-container').getSelectedIds();
                 const newPacIds = document.getElementById('atuacao-pacientes-container').getSelectedIds();
-                const atuData = {
-                    membro_ids: newMemIds, medico_ids: newMedIds, paciente_ids: newPacIds,
-                    ordem: document.getElementById('atuacao-ordem').value, tipo: document.getElementById('atuacao-tipo').value,
-                    data: document.getElementById('atuacao-data').value, quantidade: document.getElementById('atuacao-quantidade').value,
-                    observacoes: document.getElementById('atuacao-obs').value
-                };
+            const atuData = {
+    membro_ids: newMemIds, 
+    medico_ids: newMedIds, 
+    paciente_ids: newPacIds,
+    ordem: document.getElementById('atuacao-ordem').value, 
+    tipo: document.getElementById('atuacao-tipo').value,
+    data: document.getElementById('atuacao-data').value, 
+    quantidade: document.getElementById('atuacao-quantidade').value,
+    observacoes: document.getElementById('atuacao-obs').value,
+    fechado: document.getElementById('atuacao-fechado').value === 'sim' // Adicione esta linha
+};
                 try {
                     if (editId) {
                         const atuRef = doc(db, 'atuacoes', editId);
