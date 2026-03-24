@@ -258,6 +258,57 @@
     background-color: var(--primary-color);
     border-left-color: var(--green-accent);
 }
+/* Localize este bloco no seu <style> */
+.toggle-list {
+    max-height: 650px; /* Aumentado de 300px para 650px */
+    overflow-y: auto;
+    border-top: 1px solid var(--border-color);
+    margin-top: 10px;
+    padding-top: 10px;
+    /* Opcional: Adicione um scrollbar mais elegante no tema escuro */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+/* Opcional: Para navegadores Chrome/Safari verem o scrollbar melhor */
+.toggle-list::-webkit-scrollbar {
+    width: 8px;
+}
+.toggle-list::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+.list-header h3 { 
+    margin: 0; 
+    border-bottom: none; 
+    padding-bottom: 0; 
+}
+.header-filters {
+    display: flex;
+    gap: 10px;
+    flex-grow: 1;
+    justify-content: flex-end;
+}
+/* Versão compacta do multi-select para cabeçalhos */
+.header-filters .multi-search-select-container {
+    width: 200px;
+    font-size: 0.85em;
+}
+.header-filters .multi-search-select-input-wrapper {
+    min-height: 32px;
+    padding: 2px 5px;
+}
+
+
 </style>
 
 </head>
@@ -271,7 +322,6 @@
 </div>
 
     <div class="container">
-        <h1>Plataforma de Edição</h1>
 
         <nav class="tabs">
             <button class="tab-link active" data-tab="hospitais">Hospitais</button>
@@ -555,114 +605,121 @@
         <div id="tab-especialidades" class="tab-content"><form id="form-especialidade"><fieldset><legend>Detalhes da Especialidade</legend><div class="form-group"><label for="esp-nome">Nome da Especialidade</label><input type="text" id="esp-nome" required></div></fieldset><button type="submit" class="btn btn-submit">Guardar Especialidade</button></form></div>
 
         <!-- ABA AÇÃO -->
-        <div id="tab-acao" class="tab-content">
-            <h2>Ações <span id="acao-medico-nome" style="color: var(--primary-color); font-weight: normal;"></span></h2>
-            <nav class="tabs sub-tabs">
-                <button class="tab-link active" data-tab="atuacoes">Atuações</button>
-                <button class="tab-link" data-tab="leads">Leads</button>
-                <button class="tab-link" data-tab="pedidos">Pedidos</button>
-            </nav>
-            
-            <div id="tab-atuacoes" class="tab-content active" style="padding-top: 20px;">
-                 <div class="edit-list-container hidden">
-                    <h3>Atuações Associadas</h3>
-                    <div id="atuacoes-list" class="toggle-list"><p>A carregar...</p></div>
+       <div id="tab-acao" class="tab-content">
+    <h2>Ações <span id="acao-medico-nome" style="color: var(--primary-color); font-weight: normal;"></span></h2>
+    <nav class="tabs sub-tabs">
+        <button class="tab-link active" data-tab="atuacoes">Atuações</button>
+        <button class="tab-link" data-tab="leads">Leads</button>
+        <button class="tab-link" data-tab="pedidos">Pedidos</button>
+    </nav>
+    
+    <!-- CONTEÚDO ATUAÇÕES -->
+    <div id="tab-atuacoes" class="tab-content active" style="padding-top: 20px;">
+        <div class="edit-list-container hidden">
+            <div class="list-header">
+                <h3>Atuações Associadas</h3>
+                <div class="header-filters">
+                    <div id="f-atu-membros" class="multi-search-select-container">
+                        <div class="multi-search-select-input-wrapper"><input type="text" class="multi-search-select-input" placeholder="Filtrar Membros..."></div>
+                        <div class="multi-search-select-dropdown"></div>
+                    </div>
+                    <div id="f-atu-medicos" class="multi-search-select-container">
+                        <div class="multi-search-select-input-wrapper"><input type="text" class="multi-search-select-input" placeholder="Filtrar Médicos..."></div>
+                        <div class="multi-search-select-dropdown"></div>
+                    </div>
+                    <div id="f-atu-pacientes" class="multi-search-select-container">
+                        <div class="multi-search-select-input-wrapper"><input type="text" class="multi-search-select-input" placeholder="Filtrar Pacientes..."></div>
+                        <div class="multi-search-select-dropdown"></div>
+                    </div>
                 </div>
-                <button type="button" id="btn-show-form-atuacao" class="btn btn-submit hidden">Criar Nova Atuação</button>
-                <form id="form-atuacao" data-edit-id="">
-                    <fieldset>
-                        <legend>Criar / Editar Atuação</legend>
-                        <div class="form-group"><label for="atuacao-membros-search">Membros</label><div id="atuacao-membros-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-membros-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
-                        <div class="form-row cols-2" style="margin-top:20px;"><div class="form-group"><label for="atuacao-ordem">Nº Ordem</label><input type="text" id="atuacao-ordem"></div><div class="form-group"><label for="atuacao-tipo">Tipo</label><select id="atuacao-tipo"><option value="">Selecione...</option><option>Actuação</option><option>Apresentação</option></select></div><div class="form-group"><label for="atuacao-data">Data</label><input type="date" id="atuacao-data"></div><div class="form-group"><label for="atuacao-quantidade">Quantidade</label><input type="number" id="atuacao-quantidade"></div></div>
-                        <div class="form-group" style="margin-top:20px;"><label for="atuacao-medicos-search">Médico(s)</label><div id="atuacao-medicos-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-medicos-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
-                        <div class="form-group" style="margin-top:20px;"><label for="atuacao-pacientes-search">Paciente(s)</label><div id="atuacao-pacientes-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-pacientes-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
-                        <div class="form-group" style="margin-top:20px;"><label for="atuacao-obs">Observações</label><textarea id="atuacao-obs"></textarea></div>
-                   <div class="form-group" style="margin-top:20px;">
-    <label for="atuacao-fechado">Fechado?</label>
-    <select id="atuacao-fechado">
-        <option value="nao" selected>Não</option>
-        <option value="sim">Sim</option>
-    </select>
-</div>
-                    </fieldset>
-                    <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Atuação</button><button type="button" id="btn-cancel-atuacao" class="btn btn-cancel hidden">Cancelar Edição</button></div>
-                </form>
             </div>
-
-            
-            
-            <div id="tab-leads" class="tab-content" style="padding-top: 20px;">
-                 <div class="edit-list-container hidden">
-                    <h3>Leads Associadas</h3>
-                    <div id="leads-list" class="toggle-list"><p>A carregar...</p></div>
-                </div>
-                <button type="button" id="btn-show-form-lead" class="btn btn-submit hidden">Criar Nova Lead</button>
-                <form id="form-lead" data-edit-id="">
-                    <fieldset>
-                       <legend>Criar / Editar Lead</legend>
-    <div class="form-row cols-3">
-        <div class="form-group"><label for="lead-hospital-search-input">Hospital</label><div id="lead-hospital-container" class="searchable-select-container"><input type="text" id="lead-hospital-search-input" class="searchable-select-input" placeholder="Pesquisar..." autocomplete="off"><input type="hidden" id="lead-hospital-value" class="searchable-select-value"><div class="searchable-select-dropdown"></div></div></div>
-        <div class="form-group"><label for="lead-data">Data</label><input type="date" id="lead-data"></div>
-        <div class="form-group"><label for="lead-tipo">Tipo</label><select id="lead-tipo"><option value="">Selecione...</option><option>Actuação</option><option>Apresentação</option></select></div>
-    </div>
-
-    <div class="form-group" style="margin-top:20px;">
-        <label for="lead-membros-search">Membro(s)</label>
-        <div id="lead-membros-container" class="multi-search-select-container">
-            <div class="multi-search-select-input-wrapper">
-                <input type="text" id="lead-membros-search" class="multi-search-select-input" placeholder="Pesquisar membro...">
-            </div>
-            <div class="multi-search-select-dropdown"></div>
-        </div>
-    </div>
-
-    <div class="form-group" style="margin-top:20px;">
-        <label for="lead-medicos-search">Médico(s)</label>
-        <div id="lead-medicos-container" class="multi-search-select-container">
-            <div class="multi-search-select-input-wrapper">
-                <input type="text" id="lead-medicos-search" class="multi-search-select-input" placeholder="Pesquisar...">
-            </div>
-            <div class="multi-search-select-dropdown"></div>
-        </div>
-    </div>
-
-    <div class="form-group" style="margin-top:20px;">
-        <label for="lead-descricao">Descrição</label><textarea id="lead-descricao"></textarea>
-    </div>
-
-    <div class="form-row cols-3" style="margin-top:20px;">
-        <div class="form-group"><label for="lead-servico">Serviço</label><select id="lead-servico"><option value="">Selecione...</option></select></div>
-        <div class="form-group"><label for="lead-status">Status</label><select id="lead-status"><option value="">Selecione...</option><option>Ativo</option><option>Desativo</option></select></div>
-        <div class="form-group"><label for="lead-fechado">Fechado?</label><select id="lead-fechado"><option value="">Selecione...</option><option>Sim</option><option>Não</option></select></div>
-    </div>
-</fieldset>
-
-                    <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Lead</button><button type="button" id="btn-cancel-lead" class="btn btn-cancel hidden">Cancelar Edição</button></div>
-                </form>
-            </div>
-            
-             <div id="tab-pedidos" class="tab-content" style="padding-top: 20px;">
-                <div class="edit-list-container hidden">
-                    <h3>Pedidos Associados</h3>
-                    <div id="pedidos-list" class="toggle-list"><p>A carregar...</p></div>
-                </div>
-                <button type="button" class="btn btn-submit hidden">Criar Novo Pedido</button>
-                <form id="form-pedido" data-edit-id=""><fieldset>
-                  <legend>Criar / Editar Pedido</legend>
-
-        <div class="form-group">
-            <label for="pedido-membros-search">Membro(s)</label>
-            <div id="pedido-membros-container" class="multi-search-select-container">
-                <div class="multi-search-select-input-wrapper">
-                    <input type="text" id="pedido-membros-search" class="multi-search-select-input" placeholder="Pesquisar membro...">
-                </div>
-                <div class="multi-search-select-dropdown"></div>
-            </div>
+            <div id="atuacoes-list" class="toggle-list"><p>A carregar...</p></div>
         </div>
         
-        <p>Formulário de Pedidos a implementar...</p>
-    </fieldset>
-    <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Pedido</button><button type="button" id="btn-cancel-pedido" class="btn btn-cancel hidden">Cancelar Edição</button></div>
+        <button type="button" id="btn-show-form-atuacao" class="btn btn-submit hidden">Criar Nova Atuação</button>
+        
+        <form id="form-atuacao" class="hidden" data-edit-id="">
+            <fieldset>
+                <legend>Criar / Editar Atuação</legend>
+                <div class="form-group"><label for="atuacao-membros-search">Membros</label><div id="atuacao-membros-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-membros-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
+                <div class="form-row cols-2" style="margin-top:20px;"><div class="form-group"><label for="atuacao-ordem">Nº Ordem</label><input type="text" id="atuacao-ordem"></div><div class="form-group"><label for="atuacao-tipo">Tipo</label><select id="atuacao-tipo"><option value="">Selecione...</option><option>Actuação</option><option>Apresentação</option></select></div><div class="form-group"><label for="atuacao-data">Data</label><input type="date" id="atuacao-data"></div><div class="form-group"><label for="atuacao-quantidade">Quantidade</label><input type="number" id="atuacao-quantidade"></div></div>
+                <div class="form-group" style="margin-top:20px;"><label for="atuacao-medicos-search">Médico(s)</label><div id="atuacao-medicos-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-medicos-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
+                <div class="form-group" style="margin-top:20px;"><label for="atuacao-pacientes-search">Paciente(s)</label><div id="atuacao-pacientes-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-pacientes-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
+                <div class="form-group" style="margin-top:20px;"><label for="atuacao-obs">Observações</label><textarea id="atuacao-obs"></textarea></div>
+                <div class="form-group" style="margin-top:20px;">
+                    <label for="atuacao-fechado">Fechado?</label>
+                    <select id="atuacao-fechado"><option value="nao" selected>Não</option><option value="sim">Sim</option></select>
+                </div>
+            </fieldset>
+            <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Atuação</button><button type="button" id="btn-cancel-atuacao" class="btn btn-cancel hidden">Cancelar Edição</button></div>
+        </form>
+    </div>
+
+    <!-- CONTEÚDO LEADS -->
+    <div id="tab-leads" class="tab-content" style="padding-top: 20px;">
+        <div class="edit-list-container hidden">
+            <div class="list-header">
+                <h3>Leads Associadas</h3>
+                <div class="header-filters">
+                    <div id="f-lead-membros" class="multi-search-select-container">
+                        <div class="multi-search-select-input-wrapper"><input type="text" class="multi-search-select-input" placeholder="Filtrar Membros..."></div>
+                        <div class="multi-search-select-dropdown"></div>
+                    </div>
+                    <div id="f-lead-medicos" class="multi-search-select-container">
+                        <div class="multi-search-select-input-wrapper"><input type="text" class="multi-search-select-input" placeholder="Filtrar Médicos..."></div>
+                        <div class="multi-search-select-dropdown"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="leads-list" class="toggle-list"><p>A carregar...</p></div>
+        </div>
+        
+        <button type="button" id="btn-show-form-lead" class="btn btn-submit hidden">Criar Nova Lead</button>
+        
+        <form id="form-lead" class="hidden" data-edit-id="">
+            <fieldset>
+                <legend>Criar / Editar Lead</legend>
+                <div class="form-row cols-3">
+                    <div class="form-group"><label for="lead-hospital-search-input">Hospital</label><div id="lead-hospital-container" class="searchable-select-container"><input type="text" id="lead-hospital-search-input" class="searchable-select-input" placeholder="Pesquisar..." autocomplete="off"><input type="hidden" id="lead-hospital-value" class="searchable-select-value"><div class="searchable-select-dropdown"></div></div></div>
+                    <div class="form-group"><label for="lead-data">Data</label><input type="date" id="lead-data"></div>
+                    <div class="form-group"><label for="lead-tipo">Tipo</label><select id="lead-tipo"><option value="">Selecione...</option><option>Actuação</option><option>Apresentação</option></select></div>
+                </div>
+                <div class="form-group" style="margin-top:20px;"><label for="lead-membros-search">Membro(s)</label><div id="lead-membros-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="lead-membros-search" class="multi-search-select-input" placeholder="Pesquisar membro..."></div><div class="multi-search-select-dropdown"></div></div></div>
+                <div class="form-group" style="margin-top:20px;"><label for="lead-medicos-search">Médico(s)</label><div id="lead-medicos-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="lead-medicos-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
+                <div class="form-group" style="margin-top:20px;"><label for="lead-descricao">Descrição</label><textarea id="lead-descricao"></textarea></div>
+                <div class="form-row cols-3" style="margin-top:20px;">
+                    <div class="form-group"><label for="lead-servico">Serviço</label><select id="lead-servico"><option value="">Selecione...</option></select></div>
+                    <div class="form-group"><label for="lead-status">Status</label><select id="lead-status"><option value="">Selecione...</option><option>Ativo</option><option>Desativo</option></select></div>
+                    <div class="form-group"><label for="lead-fechado">Fechado?</label><select id="lead-fechado"><option value="Não">Não</option><option value="Sim">Sim</option></select></div>
+                </div>
+            </fieldset>
+            <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Lead</button><button type="button" id="btn-cancel-lead" class="btn btn-cancel hidden">Cancelar Edição</button></div>
+        </form>
+    </div>
+    
+    <!-- CONTEÚDO PEDIDOS -->
+    <div id="tab-pedidos" class="tab-content" style="padding-top: 20px;">
+        <div class="edit-list-container hidden">
+            <h3>Pedidos Associados</h3>
+            <div id="pedidos-list" class="toggle-list"><p>A carregar...</p></div>
+        </div>
+        <button type="button" class="btn btn-submit hidden">Criar Novo Pedido</button>
+        <form id="form-pedido" class="hidden" data-edit-id="">
+            <fieldset>
+                <legend>Criar / Editar Pedido</legend>
+                <div class="form-group">
+                    <label for="pedido-membros-search">Membro(s)</label>
+                    <div id="pedido-membros-container" class="multi-search-select-container">
+                        <div class="multi-search-select-input-wrapper"><input type="text" id="pedido-membros-search" class="multi-search-select-input" placeholder="Pesquisar membro..."></div>
+                        <div class="multi-search-select-dropdown"></div>
+                    </div>
+                </div>
+                <p>Formulário de Pedidos a implementar...</p>
+            </fieldset>
+            <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Pedido</button><button type="button" id="btn-cancel-pedido" class="btn btn-cancel hidden">Cancelar Edição</button></div>
+        </form>
+    </div>
+</div>
 </form>
 
             </div>
@@ -713,7 +770,8 @@ let pacientesCache = [];
 let isActionFormDirty = false;
 let isAtuacaoDirty = false;
 let isLeadDirty = false;
-
+let rawAtuacoes = []; // Cache para a filtragem local
+let rawLeads = [];
 
 // --- DEFINIÇÕES DE FUNÇÕES AUXILIARES ---
 
@@ -1109,15 +1167,19 @@ function resetAtuacaoForm() {
     form.querySelector('legend').textContent = 'Criar Nova Atuação';
     form.querySelector('.btn-submit').textContent = 'Guardar Atuação';
     document.getElementById('btn-cancel-atuacao').classList.add('hidden');
+    
+    // Limpar seleções
     document.getElementById('atuacao-membros-container').setSelectedIds([]);
-    document.getElementById('atuacao-medicos-container').setSelectedIds(currentEditId ? [currentEditId] : []);
     document.getElementById('atuacao-pacientes-container').setSelectedIds([]);
+    
+    // Se estivermos num contexto de médico, re-selecionamos o médico. Caso contrário, fica vazio.
+    document.getElementById('atuacao-medicos-container').setSelectedIds(currentEditId ? [currentEditId] : []);
+    
     document.querySelectorAll('#atuacoes-list .toggle-list-item.active').forEach(el => el.classList.remove('active'));
-    document.getElementById('atuacao-fechado').value = 'nao';
-    if (currentEditType === 'medico_acao') {
-        form.classList.add('hidden');
-        document.getElementById('btn-show-form-atuacao').classList.remove('hidden');
-    }
+    
+    // Sempre esconder o formulário e mostrar o botão de "Novo" após resetar
+    form.classList.add('hidden');
+    document.getElementById('btn-show-form-atuacao').classList.remove('hidden');
 }
 
 function populateLeadForm(data, id) {
@@ -1364,9 +1426,8 @@ const loader = document.getElementById('loader-overlay');
 onAuthStateChanged(auth, user => {
     if (user) {
         // SUCESSO: Utilizador logado.
-        const minimumDelayPromise = new Promise(resolve => setTimeout(resolve, 1000));
+        const minimumDelayPromise = new Promise(resolve => setTimeout(resolve, 800));
         
-        // A função que contém toda a lógica original da página.
         async function initializePage() {
             
             // 1. CONFIGURAR EVENT LISTENERS DE NAVEGAÇÃO (ABAS)
@@ -1389,13 +1450,27 @@ onAuthStateChanged(auth, user => {
                     }
                 });
             });
+
             
-            // Detetar alterações nos formulários de Atuação e Lead
-['form-atuacao', 'form-lead'].forEach(formId => {
-    document.getElementById(formId)?.addEventListener('input', () => {
-        isActionFormDirty = true;
-    });
-});
+            // Monitorizar alterações para prevenir perda de dados
+            ['form-atuacao', 'form-lead'].forEach(formId => {
+                document.getElementById(formId)?.addEventListener('input', () => {
+                    isActionFormDirty = true;
+                });
+            });
+
+            // 2. CARREGAR DADOS DA FIREBASE (CACHE)
+            // Carregamos os dados base necessários para as pesquisas e formulários
+            [hospitaisCache, servicosCache, especialidadesCache, membrosCache, clhCache, congregacoesCache, medicosCache, pacientesCache] = await Promise.all([
+                populateDataCache('hospitais', 'nome'),
+                populateDataCache('servicos', 'nome'),
+                populateDataCache('especialidade', 'nome'),
+                populateDataCache('membrosclh', 'nome'),
+                populateDataCache('clh', 'nome'),
+                populateDataCache('congregacoes', 'nome'),
+                populateMedicosCache(),
+                populateDataCache('pacientes', 'nome')
+            ]);
 
 // Resetar o estado "Dirty" quando o formulário é submetido com sucesso
 document.getElementById('form-atuacao')?.addEventListener('submit', () => { isActionFormDirty = false; });
@@ -1610,7 +1685,7 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
             ]);
 
             // 3. INICIALIZAR COMPONENTES DINÂMICOS
-            const populateSelect = (selectId, data, prompt) => {
+      const populateSelect = (selectId, data, prompt) => {
                 const select = document.getElementById(selectId);
                 if (!select) return;
                 select.innerHTML = `<option value="">${prompt}</option>`;
@@ -1643,20 +1718,19 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
             makeSelectSearchable(document.getElementById('lead-hospital-container'), hospitaisCache);
             
             // 4. LÓGICA DE ROTAS DE EDIÇÃO
-            const params = new URLSearchParams(window.location.search);
+         const params = new URLSearchParams(window.location.search);
             currentEditType = params.get('edit');
             currentEditId = params.get('id');
 
-            if (currentEditId) {
-                const container = document.querySelector('.container');
+            const container = document.querySelector('.container');
 
-                // MODO: AÇÕES DO MÉDICO
+            if (currentEditId) {
+                // --- MODO EDIÇÃO COM CONTEXTO ---
+
                 if (currentEditType === 'medico_acao') {
                     container?.classList.add('action-edit-mode');
                     const bloqueadas = ['hospitais', 'membros', 'servicos', 'clh', 'congregacoes', 'especialidades', 'pacientes'];
                     bloqueadas.forEach(tab => document.querySelector(`.tab-link[data-tab="${tab}"]`)?.classList.add('locked'));
-                    document.querySelector(`.tab-link[data-tab="medicos"]`)?.classList.add('unlocked');
-                    document.querySelector(`.tab-link[data-tab="acao"]`)?.classList.add('unlocked');
                     
                     setupActionUI();
                     await loadAndPopulateMedicoForm(currentEditId);
@@ -1665,13 +1739,10 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
                     switchToTab('acao');
                     await initializeActionEditor(currentEditId, 'medico');
                 } 
-                // MODO: AÇÕES DO MEMBRO
                 else if (currentEditType === 'membro_acao') {
                     container?.classList.add('action-edit-mode');
                     const bloqueadas = ['hospitais', 'medicos', 'servicos', 'clh', 'congregacoes', 'especialidades', 'pacientes'];
                     bloqueadas.forEach(tab => document.querySelector(`.tab-link[data-tab="${tab}"]`)?.classList.add('locked'));
-                    document.querySelector(`.tab-link[data-tab="membros"]`)?.classList.add('unlocked');
-                    document.querySelector(`.tab-link[data-tab="acao"]`)?.classList.add('unlocked');
 
                     setupActionUI();
                     await loadAndPopulateMembroForm(currentEditId);
@@ -1680,7 +1751,6 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
                     switchToTab('acao');
                     await initializeActionEditor(currentEditId, 'membro');
                 }
-                // EDIÇÕES SIMPLES
                 else if (currentEditType === 'membro') {
                     container?.classList.add('edit-mode');
                     switchToTab('membros');
@@ -1692,10 +1762,27 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
                     await loadAndPopulateMedicoForm(currentEditId);
                 } 
             } else {
+                // --- MODO GLOBAL (ACESSO DIRETO MASTER.HTML) ---
+                
+                // Preparar a interface de Ação para o modo global
+                setupActionUI(); 
+
+                // Event listener para carregar TODAS as ações quando o utilizador clicar na aba Ação
+                const acaoTabLink = document.querySelector('.tab-link[data-tab="acao"]');
+                if (acaoTabLink) {
+                    acaoTabLink.addEventListener('click', () => {
+                        // Se não houver ID na URL, initializeActionEditor carrega tudo
+                        if (!currentEditId) initializeActionEditor();
+                    }, { once: true });
+                }
+
+                // Iniciar formulário de médico com campos de morada vazios por defeito
                 addMoradaInput();
                 addMoradaInput();
             }
         }
+
+ 
 
         // Função auxiliar para UI da aba Ação
         function setupActionUI() {
@@ -1709,43 +1796,75 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
             setupFormToggle('form-lead', 'btn-show-form-lead', 'btn-cancel-lead', resetLeadForm);
         }
 
+                // Executar inicialização e remover loader
         Promise.all([initializePage(), minimumDelayPromise]).then(() => {
             loader.classList.add('hidden');
         }).catch(err => {
-            console.error(err);
+            console.error("Erro na inicialização:", err);
             loader.classList.add('hidden');
         });
 
     } else {
+        // Redirecionar se não houver sessão ativa
         window.location.href = 'index.html';
     }
 });
 
 // Ajuste final na função de carregar o editor de ações para suportar ambos os tipos
-async function initializeActionEditor(id, tipo = 'medico') {
-    const colecao = tipo === 'medico' ? 'medicos' : 'membrosclh';
-    const drSnap = await getDoc(doc(db, colecao, id));
-    if (!drSnap.exists()) return;
-
-    const data = drSnap.data();
+async function initializeActionEditor(id = null, tipo = null) {
     const nomeMedicoEl = document.getElementById('acao-medico-nome');
-    if (nomeMedicoEl) nomeMedicoEl.textContent = `- ${data.nome}`;
+    let atuQuery, leadQuery;
 
-    const filtro = tipo === 'medico' ? 'medico_ids' : 'membro_ids';
-    
-    // Buscar Atuações
-    const atuQuery = query(collection(db, 'atuacoes'), where(filtro, 'array-contains', id));
-    const atuSnap = await getDocs(atuQuery);
-    renderToggleList('atuacoes-list', atuSnap.docs.map(d => ({id: d.id, data: d.data()})), 'data', 'observacoes', 'atuacoes');
+    // 1. Definir Queries
+    if (id) {
+        const filtro = tipo === 'medico' ? 'medico_ids' : 'membro_ids';
+        atuQuery = query(collection(db, 'atuacoes'), where(filtro, 'array-contains', id));
+        leadQuery = query(collection(db, 'leads'), where(filtro, 'array-contains', id));
+    } else {
+        atuQuery = query(collection(db, 'atuacoes'));
+        leadQuery = query(collection(db, 'leads'));
+        if (nomeMedicoEl) nomeMedicoEl.textContent = "- Todos os Registos";
+    }
 
-    // Buscar Leads
-    const leadQuery = query(collection(db, 'leads'), where(filtro, 'array-contains', id));
-    const leadSnap = await getDocs(leadQuery);
-    renderToggleList('leads-list', leadSnap.docs.map(d => ({id: d.id, data: d.data()})), 'data', 'descricao', 'leads');
+    // 2. Carregar Dados
+    const [atuSnap, leadSnap] = await Promise.all([getDocs(atuQuery), getDocs(leadQuery)]);
+    rawAtuacoes = atuSnap.docs.map(d => ({id: d.id, data: d.data()}));
+    rawLeads = leadSnap.docs.map(d => ({id: d.id, data: d.data()}));
+
+    // 3. Inicializar Componentes de Filtro (apenas uma vez)
+    initMultiSearchSelect('f-atu-membros', membrosCache);
+    initMultiSearchSelect('f-atu-medicos', medicosCache);
+    initMultiSearchSelect('f-atu-pacientes', pacientesCache);
+    initMultiSearchSelect('f-lead-membros', membrosCache);
+    initMultiSearchSelect('f-lead-medicos', medicosCache);
+
+    // 4. Função de Filtragem Local
+    const aplicarFiltros = () => {
+        const selMembros = document.getElementById('f-atu-membros').getSelectedIds();
+        const selMedicos = document.getElementById('f-atu-medicos').getSelectedIds();
+        const selPacientes = document.getElementById('f-atu-pacientes').getSelectedIds();
+
+        const filtradas = rawAtuacoes.filter(item => {
+            const matchMembro = selMembros.length === 0 || selMembros.some(id => item.data.membro_ids?.includes(id));
+            const matchMedico = selMedicos.length === 0 || selMedicos.some(id => item.data.medico_ids?.includes(id));
+            const matchPaciente = selPacientes.length === 0 || selPacientes.some(id => item.data.paciente_ids?.includes(id));
+            return matchMembro && matchMedico && matchPaciente;
+        });
+
+        renderToggleList('atuacoes-list', filtradas, 'data', 'observacoes', 'atuacoes');
+    };
+
+    // 5. Ligar Eventos de Filtro
+    ['f-atu-membros', 'f-atu-medicos', 'f-atu-pacientes'].forEach(fId => {
+        document.getElementById(fId).addEventListener('change', aplicarFiltros);
+    });
+
+    // Renderização inicial
+    aplicarFiltros();
+    renderToggleList('leads-list', rawLeads, 'data', 'descricao', 'leads');
     
     setupActionEditor(id);
 }
-
 
 
 
