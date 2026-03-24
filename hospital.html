@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil do Hospital</title>
+    
+    <!-- ADICIONADO: Font Awesome para os ícones do menu -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #adb5bd;
+            --background-color: #212529;
+            --surface-color: #2b3035;
+            --text-color: #dee2e6;
+            --text-color-muted: #adb5bd;
+            --border-color: #495057;
+            --green-active: #198754;
+            --red-inactive: #dc3545;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--background-color); 
+            color: var(--text-color); 
+            margin: 0; 
+            padding: 20px; 
+            /* ADICIONADO: Espaço no fundo para o menu não tapar o conteúdo */
+            padding-bottom: 80px; 
+        }
+        
+        /* Barra de Pesquisa */
+        .search-wrapper { max-width: 1200px; margin: 0 auto 20px auto; position: relative; }
+        #hospital-search-input { width: 100%; padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1.1em; background-color: var(--surface-color); color: var(--text-color); box-sizing: border-box; }
+        #search-results { display: none; position: absolute; top: 100%; left: 0; right: 0; background-color: #343a40; border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 6px 6px; z-index: 1000; max-height: 300px; overflow-y: auto; }
+        .search-result-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid var(--border-color); }
+        .search-result-item:hover { background-color: var(--primary-color); color: #fff; }
+
+        .container { max-width: 1200px; margin: auto; background: var(--surface-color); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        
+        /* Header */
+        .profile-header { display: flex; align-items: center; gap: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 25px; flex-wrap: wrap; }
+        .hospital-icon { width: 100px; height: 100px; border-radius: 12px; background-color: #495057; display: flex; align-items: center; justify-content: center; font-size: 3em; color: var(--text-color-muted); }
+        .profile-info h1 { margin: 0; font-size: 2.2em; color: #fff; }
+        .profile-info h2 { margin: 5px 0 10px; font-size: 1.2em; color: var(--text-color-muted); font-weight: 400; }
+        
+        .status-pill { display: inline-block; padding: 5px 12px; border-radius: 15px; font-size: 0.9em; font-weight: 600; color: #fff; }
+        .status-pill.active { background-color: var(--green-active); }
+        .status-pill.inactive { background-color: var(--red-inactive); }
+
+        /* Tabs */
+        .tabs-container { display: flex; border-bottom: 1px solid var(--border-color); gap: 5px; overflow-x: auto; white-space: nowrap; }
+        .tab-button { background: none; border: none; color: var(--text-color-muted); padding: 14px 20px; cursor: pointer; font-size: 1.1em; border-bottom: 3px solid transparent; }
+        .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
+        .tab-content { display: none; padding-top: 25px; }
+        .tab-content.active { display: block; }
+
+        /* Grids de Info */
+        .info-section { margin-bottom: 30px; }
+        .info-section h3 { color: #fff; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px; }
+        .info-grid { display: grid; grid-template-columns: 220px 1fr; gap: 10px 20px; }
+        .info-grid dt { font-weight: 600; color: var(--text-color-muted); }
+        .info-grid dd { margin: 0; }
+
+        /* Listas e Badges */
+        .list-item { background-color: #343a40; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid var(--primary-color); }
+        .badge { background: var(--primary-color); color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.85em; margin-right: 5px; }
+
+        /* Loader */
+        #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--background-color); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+        .spinner { width: 50px; height: 50px; border: 5px solid var(--surface-color); border-top: 5px solid var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+
+        /* Estilos para a lista de médicos com Toggle */
+        .doctor-card { background-color: #343a40; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border-color); overflow: hidden; }
+        .doctor-summary { display: flex; align-items: center; padding: 12px; cursor: pointer; gap: 15px; transition: background 0.2s; }
+        .doctor-summary:hover { background-color: #3d444b; }
+        .doctor-avatar-sq { width: 65px; height: 65px; border-radius: 6px; object-fit: cover; background-color: #495057; flex-shrink: 0; }
+        .doctor-content { display: none; padding: 15px; background-color: #2b3035; border-top: 1px solid var(--border-color); }
+        .doctor-card.active .doctor-content { display: block; }
+        .activity-line { border-left: 3px solid var(--primary-color); padding-left: 12px; margin-bottom: 10px; font-size: 0.9em; }
+        .btn-profile { display: inline-block; margin-top: 10px; padding: 6px 12px; background-color: var(--primary-color); color: white; text-decoration: none; border-radius: 4px; font-size: 0.85em; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div id="loader-overlay">
+        <div class="spinner"></div>
+        <p>A carregar dados do hospital...</p>
+    </div>
+
+    <div class="search-wrapper">
+        <input type="text" id="hospital-search-input" placeholder="Pesquisar hospital por nome ou sigla...">
+        <div id="search-results"></div>
+    </div>
+
+    <div class="container" id="main-container">
+        <!-- Conteúdo preenchido via JS -->
+    </div>
+
+    <!-- ADICIONADO: Placeholder onde o menu será carregado -->
+    <div id="bottom-menu-placeholder"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
+        authDomain: "medical-5baa0.firebaseapp.com",
+        projectId: "medical-5baa0",
+        storageBucket: "medical-5baa0.appspot.com",
+        messagingSenderId: "900547659131",
+        appId: "1:900547659131:web:708f90f8fa1500d76569de"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const mainContainer = document.getElementById('main-container');
+    const searchInput = document.getElementById('hospital-search-input');
+    const searchResultsContainer = document.getElementById('search-results');
+
+    onAuthStateChanged(auth, async user => {
+        if (user) {
+            const params = new URLSearchParams(window.location.search);
+            const hospitalId = params.get('id');
+            if (hospitalId) {
+                await loadHospitalProfile(hospitalId);
+                initSearch();
+            } else {
+                mainContainer.innerHTML = '<div class="error">ID do hospital não encontrado.</div>';
+            }
+            document.getElementById('loader-overlay').classList.add('hidden');
+        } else {
+            window.location.href = 'index.html';
+        }
+    });
+
+    async function loadHospitalProfile(id) {
+        try {
+            const hospitalSnap = await getDoc(doc(db, "hospitais", id));
+            if (!hospitalSnap.exists()) return;
+
+            const data = hospitalSnap.data();
+            
+            const [membrosSnap, servicosSnap, clhSnap, medicosSnap, especialidadesSnap, atuacoesSnap] = await Promise.all([
+                getDocs(collection(db, "membrosclh")),
+                getDocs(collection(db, "servicos")),
+                getDocs(collection(db, "clh")),
+                getDocs(collection(db, "medicos")),
+                getDocs(collection(db, "especialidade")),
+                getDocs(collection(db, "atuacoes"))
+            ]);
+
+            const membrosMap = new Map(membrosSnap.docs.map(d => [d.id, d.data().nome]));
+            const servicosMap = new Map(servicosSnap.docs.map(d => [d.id, d.data().nome]));
+            const clhMap = new Map(clhSnap.docs.map(d => [d.id, d.data().nome]));
+            const especialidadesMap = new Map(especialidadesSnap.docs.map(d => [d.id, d.data().nome]));
+            const atuacoesMap = new Map(atuacoesSnap.docs.map(d => [d.id, d.data()]));
+
+            const medicosFiltrados = medicosSnap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(medico => medico.posicoes && medico.posicoes.some(p => p.hospital_id === id));
+
+            renderHospital(data, id, { membrosMap, servicosMap, clhMap, medicosFiltrados, especialidadesMap, atuacoesMap });
+        } catch (e) { console.error(e); }
+    }
+
+    function renderHospital(data, id, maps) {
+        const activeClass = data.ativo ? 'active' : 'inactive';
+        const activeText = data.ativo ? 'Ativo' : 'Inativo';
+        const silhouetteUrl = 'https://via.placeholder.com/100/495057/dee2e6?text=FOTO';
+
+        const medicosHtml = maps.medicosFiltrados.length > 0 
+            ? maps.medicosFiltrados.map(m => {
+                const esp = (m.especialidade_ids || []).map(eid => maps.especialidadesMap.get(eid)).join(', ') || 'Especialidade N/D';
+                const posNoHosp = m.posicoes.find(p => p.hospital_id === id);
+                
+                const atividadesIds = m.atuacoes_ids || [];
+                const atividadesHtml = atividadesIds.length > 0 
+                    ? atividadesIds.slice(0, 3).map(aid => {
+                        const at = maps.atuacoesMap.get(aid);
+                        if (!at) return '';
+                        return `
+                            <div class="activity-line">
+                                <strong style="color:var(--secondary-color)">${at.data || ''}</strong> - ${at.tipo || ''}<br>
+                                <span style="color:var(--text-muted)">${at.observacoes || 'Sem observações.'}</span>
+                            </div>`;
+                    }).join('')
+                    : '<p style="color:var(--text-muted)">Sem atividades CLH registadas.</p>';
+
+                return `
+                    <div class="doctor-card" id="card-${m.id}">
+                        <div class="doctor-summary" onclick="document.getElementById('card-${m.id}').classList.toggle('active')">
+                            <img src="${m.imagem_url || silhouetteUrl}" class="doctor-avatar-sq" onerror="this.src='${silhouetteUrl}'">
+                            <div style="flex-grow: 1;">
+                                <strong style="color: var(--primary-color); font-size: 1.1em;">${m.nome}</strong><br>
+                                <small style="color: var(--text-color-muted)">${esp}</small>
+                            </div>
+                            <div style="text-align: right; min-width: 150px;">
+                                <span class="badge" style="background: var(--background-color); border: 1px solid var(--border-color); color: var(--text-color);">
+                                    ${maps.servicosMap.get(posNoHosp?.servico_id) || 'N/A'}
+                                </span>
+                                <div style="font-size: 0.8em; margin-top: 4px; color: var(--secondary-color);">${posNoHosp?.cargo || ''}</div>
+                            </div>
+                        </div>
+                        <div class="doctor-content">
+                            <h4 style="margin: 0 0 10px 0; font-size: 0.9em; text-transform: uppercase; color: var(--secondary-color);">Atividade CLH</h4>
+                            ${atividadesHtml}
+                            <a href="medico.html?id=${m.id}" class="btn-profile">Ver Perfil Completo</a>
+                        </div>
+                    </div>`;
+            }).join('')
+            : '<p style="color: var(--text-color-muted); padding: 20px;">Nenhum médico registado neste hospital.</p>';
+
+        mainContainer.innerHTML = `
+            <div class="profile-header">
+                <div class="hospital-icon">🏥</div>
+                <div class="profile-info">
+                    <h1>${data.nome}</h1>
+                    <h2>${data.sigla || ''} ${data.sigla ? '|' : ''} ${data.cidade || ''}</h2>
+                    <span class="status-pill ${activeClass}">${activeText}</span>
+                </div>
+            </div>
+
+            <div class="tabs-container">
+                <button class="tab-button active" data-tab="geral">Informação Geral</button>
+                <button class="tab-button" data-tab="medicos-hospital">Médicos</button>
+                <button class="tab-button" data-tab="tipologia">Tipologia</button>
+                <button class="tab-button" data-tab="servicos">Serviços</button>
+                <button class="tab-button" data-tab="notas">Notas e Convênios</button>
+                <a href="master.html?edit=hospital&id=${id}" class="tab-button" style="margin-left: auto; color: var(--primary-color);">Editar</a>
+            </div>
+
+            <div class="tab-content active" id="geral">
+                <div class="info-section">
+                    <h3>Contactos e Localização</h3>
+                    <dl class="info-grid">
+                        <dt>Morada</dt><dd>${data.morada || 'N/A'}</dd>
+                        <dt>Código Postal</dt><dd>${data.cp || 'N/A'}</dd>
+                        <dt>Telefone Geral</dt><dd>${data.contacto || 'N/A'}</dd>
+                        <dt>Fax</dt><dd>${data.fax || 'N/A'}</dd>
+                        <dt>Email</dt><dd>${data.email || 'N/A'}</dd>
+                        <dt>Website</dt><dd>${data.site ? `<a href="${data.site}" target="_blank">${data.site}</a>` : 'N/A'}</dd>
+                    </dl>
+                </div>
+                <div class="info-section">
+                    <h3>Gestão CLH</h3>
+                    <dl class="info-grid">
+                        <dt>CLH Responsável</dt><dd>${maps.clhMap.get(data.clh_id) || 'N/A'}</dd>
+                        <dt>Membros Responsáveis</dt><dd>${(data.responsavel_ids || []).map(mid => maps.membrosMap.get(mid)).join(', ') || 'N/A'}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="tab-content" id="medicos-hospital">
+                <div class="info-section">
+                    <h3>Corpo Clínico Associado</h3>
+                    <div style="margin-top: 15px;">
+                        ${medicosHtml}
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tipologia">
+                <div class="info-section">
+                    <h3>Características</h3>
+                    <dl class="info-grid">
+                        <dt>ULS</dt><dd>${data.uls ? 'Sim' : 'Não'}</dd>
+                        <dt>Público</dt><dd>${data.publico ? 'Sim' : 'Não'}</dd>
+                        <dt>Privado</dt><dd>${data.privado ? 'Sim' : 'Não'}</dd>
+                        <dt>Trauma Adulto</dt><dd>Nível ${data.trauma_adulto_nivel || 'N/D'}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="tab-content" id="servicos">
+                <div class="info-section">
+                    <h3>Serviços Disponíveis</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        ${(data.servicos_ids || []).map(sid => `<div class="list-item" style="margin-bottom:0">${maps.servicosMap.get(sid) || 'Serviço N/D'}</div>`).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="notas">
+                <div class="info-section">
+                    <h3>Convenções</h3>
+                    ${(data.convencoes || []).map(conv => `<div class="list-item">${conv}</div>`).join('')}
+                </div>
+                <div class="info-section">
+                    <h3>Notas Internas</h3>
+                    ${(data.notas || []).map(nota => `<div class="list-item" style="border-left-color: #ffc107;">${nota}</div>`).join('')}
+                </div>
+            </div>
+        `;
+
+        setupTabs();
+    }
+
+    function setupTabs() {
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.tagName === 'A') return;
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+    }
+
+    async function initSearch() {
+        const snap = await getDocs(collection(db, "hospitais"));
+        const hospitais = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        searchInput.addEventListener('input', () => {
+            const term = searchInput.value.toLowerCase();
+            if (term.length < 2) { searchResultsContainer.style.display = 'none'; return; }
+            
+            const filtered = hospitais.filter(h => h.nome.toLowerCase().includes(term) || (h.sigla && h.sigla.toLowerCase().includes(term)));
+            
+            searchResultsContainer.innerHTML = filtered.map(h => `
+                <div class="search-result-item" onclick="window.location.href='hospital.html?id=${h.id}'">
+                    ${h.nome} <small>(${h.sigla || h.cidade})</small>
+                </div>
+            `).join('');
+            searchResultsContainer.style.display = 'block';
+        });
+    }
+</script>
+
+<!-- ADICIONADO: Carregamento do Menu -->
+<script src="menu-loader.js"></script>
+
+</body>
+</html>
