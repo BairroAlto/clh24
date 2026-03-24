@@ -608,8 +608,8 @@
         <!-- ABA ESPECIALIDADES -->
         <div id="tab-especialidades" class="tab-content"><form id="form-especialidade"><fieldset><legend>Detalhes da Especialidade</legend><div class="form-group"><label for="esp-nome">Nome da Especialidade</label><input type="text" id="esp-nome" required></div></fieldset><button type="submit" class="btn btn-submit">Guardar Especialidade</button></form></div>
 
-        <!-- ABA AÇÃO -->
-       <div id="tab-acao" class="tab-content">
+     <!-- ABA AÇÃO -->
+     <div id="tab-acao" class="tab-content">
     <h2>Ações <span id="acao-medico-nome" style="color: var(--primary-color); font-weight: normal;"></span></h2>
     <nav class="tabs sub-tabs">
         <button class="tab-link active" data-tab="atuacoes">Atuações</button>
@@ -619,6 +619,9 @@
     
     <!-- CONTEÚDO ATUAÇÕES -->
     <div id="tab-atuacoes" class="tab-content active" style="padding-top: 20px;">
+        <!-- Botão específico para Atuações - Altura reduzida com btn-sm e padding ajustado -->
+        <button type="button" id="btn-show-form-atuacao" class="btn btn-submit btn-sm hidden" style="margin-bottom: 20px; padding: 8px 15px; font-size: 0.95em;">Criar Nova Atuação</button>
+
         <div class="edit-list-container hidden">
             <div class="list-header">
                 <h3>Atuações Associadas</h3>
@@ -640,8 +643,6 @@
             <div id="atuacoes-list" class="toggle-list"><p>A carregar...</p></div>
         </div>
         
-        <button type="button" id="btn-show-form-atuacao" class="btn btn-submit hidden">Criar Nova Atuação</button>
-        
         <form id="form-atuacao" class="hidden" data-edit-id="">
             <fieldset>
                 <legend>Criar / Editar Atuação</legend>
@@ -661,6 +662,9 @@
 
     <!-- CONTEÚDO LEADS -->
     <div id="tab-leads" class="tab-content" style="padding-top: 20px;">
+        <!-- Botão específico para Leads - Altura reduzida com btn-sm e padding ajustado -->
+        <button type="button" id="btn-show-form-lead" class="btn btn-submit btn-sm hidden" style="margin-bottom: 20px; padding: 8px 15px; font-size: 0.95em;">Criar Nova Lead</button>
+
         <div class="edit-list-container hidden">
             <div class="list-header">
                 <h3>Leads Associadas</h3>
@@ -677,8 +681,6 @@
             </div>
             <div id="leads-list" class="toggle-list"><p>A carregar...</p></div>
         </div>
-        
-        <button type="button" id="btn-show-form-lead" class="btn btn-submit hidden">Criar Nova Lead</button>
         
         <form id="form-lead" class="hidden" data-edit-id="">
             <fieldset>
@@ -700,6 +702,32 @@
             <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Lead</button><button type="button" id="btn-cancel-lead" class="btn btn-cancel hidden">Cancelar Edição</button></div>
         </form>
     </div>
+    
+    <!-- CONTEÚDO PEDIDOS -->
+    <div id="tab-pedidos" class="tab-content" style="padding-top: 20px;">
+        <div class="edit-list-container hidden">
+            <h3>Pedidos Associados</h3>
+            <div id="pedidos-list" class="toggle-list"><p>A carregar...</p></div>
+        </div>
+        <!-- Botão específico para Pedidos -->
+        <button type="button" id="btn-show-form-pedido" class="btn btn-submit hidden" style="margin-bottom: 20px;">Criar Novo Pedido</button>
+        
+        <form id="form-pedido" class="hidden" data-edit-id="">
+            <fieldset>
+                <legend>Criar / Editar Pedido</legend>
+                <div class="form-group">
+                    <label for="pedido-membros-search">Membro(s)</label>
+                    <div id="pedido-membros-container" class="multi-search-select-container">
+                        <div class="multi-search-select-input-wrapper"><input type="text" id="pedido-membros-search" class="multi-search-select-input" placeholder="Pesquisar membro..."></div>
+                        <div class="multi-search-select-dropdown"></div>
+                    </div>
+                </div>
+                <p>Formulário de Pedidos a implementar...</p>
+            </fieldset>
+            <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Pedido</button><button type="button" id="btn-cancel-pedido" class="btn btn-cancel hidden">Cancelar Edição</button></div>
+        </form>
+    </div>
+</div>
     
     <!-- CONTEÚDO PEDIDOS -->
     <div id="tab-pedidos" class="tab-content" style="padding-top: 20px;">
