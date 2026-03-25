@@ -17,9 +17,8 @@
             --border-color: #495057;
             --card-bg: #343a40;
         }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 20px; padding-bottom: 80px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 20px; padding-bottom: 90px; }
         
-        /* Container principal que centraliza tudo */
         .container { max-width: 1200px; margin: auto; background: var(--surface-color); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
         
         h1 { color: #fff; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
@@ -38,12 +37,16 @@
         .card-summary:hover { background-color: #3a4045; }
         .card-info { flex-grow: 1; }
         .card-info .case-title { font-size: 1.1em; font-weight: 600; margin: 0; color: #fff; }
+        
         .card-summary::after { content: '\f107'; font-family: 'Font Awesome 6 Free'; font-weight: 900; margin-left: 15px; transition: 0.3s; color: var(--secondary-color); }
         .case-card.expanded .card-summary::after { transform: rotate(180deg); color: var(--primary-color); }
+        
+        #tab-anotacoes .card-summary::after { content: '\f303'; transform: none !important; color: #ffc107; }
+
         .card-details { max-height: 0; overflow: hidden; transition: all 0.3s ease-out; padding: 0 20px; border-top: 1px solid transparent; }
         .case-card.expanded .card-details { max-height: 2000px; padding: 20px; border-top-color: var(--border-color); }
 
-        /* --- MÉDICOS E OUTROS --- */
+        /* --- MÉDICOS --- */
         .medico-item-container { display: flex; flex-direction: column; gap: 10px; }
         .medico-toggle-card { background: #2b3035; border: 1px solid #3d4248; border-radius: 6px; overflow: hidden; }
         .medico-header { display: flex; align-items: center; padding: 10px 15px; cursor: pointer; gap: 15px; }
@@ -99,19 +102,17 @@
             <button class="tab-btn" data-tab="anotacoes">ANOTAÇÕES</button>
         </div>
 
-        <!-- CONTEÚDO: MEUS CASOS -->
+        <!-- CONTEÚDO -->
         <div id="tab-meus-casos" class="tab-content active">
             <h1>Casos Ativos</h1>
             <div id="cases-list" class="list-container"></div>
         </div>
 
-        <!-- CONTEÚDO: AGENDA -->
         <div id="tab-agenda" class="tab-content">
             <h1>Minha Agenda</h1>
             <div id="agenda-list" class="list-container"></div>
         </div>
 
-        <!-- CONTEÚDO: ANOTAÇÕES -->
         <div id="tab-anotacoes" class="tab-content">
             <h1>Minhas Anotações</h1>
             <div id="notes-list" class="list-container"></div>
@@ -128,7 +129,7 @@
     <div id="modal-note" class="modal-anotacao">
         <div class="modal-content">
             <h3 id="note-medico-nome">Anotação para Dr. ...</h3>
-            <textarea id="note-text" placeholder="Escreva aqui a anotação..."></textarea>
+            <textarea id="note-text" placeholder="Escreva aqui a anotação rápida..."></textarea>
             <div class="modal-actions">
                 <button class="btn-cancel-note" onclick="closeNoteModal()">Cancelar</button>
                 <button class="btn-save-note" id="confirm-save-note">Gravar Anotação</button>
@@ -136,12 +137,11 @@
         </div>
     </div>
 
-    <!-- ADICIONADO: Placeholder para o Menu Inferior -->
     <div id="bottom-menu-placeholder"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, doc, getDoc, getDocs, query, where, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
@@ -159,6 +159,8 @@
 
         let currentMemberId = "";
         let selectedMedicoId = "";
+        let currentNoteId = null; 
+        let notesCache = {}; 
 
         onAuthStateChanged(auth, async user => {
             if (user) {
@@ -172,33 +174,55 @@
             }
         });
 
-        // Funções de Modal
         window.openNoteModal = function(medId, medNome) {
             selectedMedicoId = medId;
+            const existingNote = notesCache[medId];
+            if (existingNote) {
+                document.getElementById('note-text').value = existingNote.text;
+                currentNoteId = existingNote.id;
+            } else {
+                document.getElementById('note-text').value = "";
+                currentNoteId = null;
+            }
             document.getElementById('note-medico-nome').textContent = `Anotação: ${medNome}`;
-            document.getElementById('note-text').value = "";
             document.getElementById('modal-note').classList.add('active');
         }
 
         window.closeNoteModal = function() {
             document.getElementById('modal-note').classList.remove('active');
+            currentNoteId = null;
         }
 
         document.getElementById('confirm-save-note').addEventListener('click', async () => {
             const text = document.getElementById('note-text').value.trim();
-            if(!text) return alert("Escreva algo.");
+            if(!text) return; // Simplesmente não faz nada se estiver vazio
+            
+            const btn = document.getElementById('confirm-save-note');
+            btn.disabled = true; // Previne cliques duplos
+
             try {
-                await addDoc(collection(db, "anotacoes"), {
-                    observacoes: text,
-                    medico_ids: [selectedMedicoId],
-                    membro_ids: [currentMemberId],
-                    data: new Date().toISOString().split('T')[0],
-                    timestamp: serverTimestamp()
-                });
-                alert("Anotação guardada!");
+                if (currentNoteId) {
+                    await updateDoc(doc(db, "anotacoes", currentNoteId), {
+                        observacoes: text,
+                        timestamp: serverTimestamp()
+                    });
+                } else {
+                    await addDoc(collection(db, "anotacoes"), {
+                        observacoes: text,
+                        medico_ids: [selectedMedicoId],
+                        membro_ids: [currentMemberId],
+                        data: new Date().toISOString().split('T')[0],
+                        timestamp: serverTimestamp()
+                    });
+                }
+                
                 closeNoteModal();
-                loadMyNotes(currentMemberId);
-            } catch(e) { console.error(e); }
+                await loadMyNotes(currentMemberId); 
+            } catch(e) { 
+                console.error("Erro ao guardar:", e); 
+            } finally {
+                btn.disabled = false;
+            }
         });
 
         async function loadMyNotes(memberId) {
@@ -206,20 +230,25 @@
             const qNotes = query(collection(db, "anotacoes"), where("membro_ids", "array-contains", memberId));
             const [notesSnap, medSnap] = await Promise.all([getDocs(qNotes), getDocs(collection(db, "medicos"))]);
             const medMap = new Map(medSnap.docs.map(d => [d.id, d.data().nome]));
+            notesCache = {};
 
             if (notesSnap.empty) {
                 container.innerHTML = '<p style="text-align:center; padding:40px; color:var(--secondary-color);">Não tens anotações pendentes.</p>';
                 return;
             }
 
-            container.innerHTML = notesSnap.docs.map(doc => {
-                const n = doc.data();
-                const medNome = (n.medico_ids || []).map(id => medMap.get(id)).join(", ") || "Médico Indefinido";
+            container.innerHTML = notesSnap.docs.map(docSnap => {
+                const n = docSnap.data();
+                const noteId = docSnap.id;
+                const medId = n.medico_ids?.[0];
+                const medNome = medMap.get(medId) || "Médico Indefinido";
+                if (medId) { notesCache[medId] = { id: noteId, text: n.observacoes }; }
+
                 return `
-                    <div class="case-card" onclick="window.location.href='master.html?edit=anotacao&id=${doc.id}'" 
+                    <div class="case-card" onclick="window.location.href='master.html?edit=anotacao&id=${noteId}'" 
                          style="border-left: 4px solid #ffc107; cursor:pointer;">
-                        <div style="display: flex; align-items: center; padding: 20px; gap: 15px;">
-                            <div class="card-info" style="flex-grow: 1;">
+                        <div class="card-summary">
+                            <div class="card-info">
                                 <h3 class="case-title" style="margin-bottom: 8px;">
                                     <span class="badge-date" style="background:#ffc107; color:#000;">${formatDate(n.data)}</span> 
                                     ${medNome}
@@ -228,17 +257,15 @@
                                     "${n.observacoes.substring(0,100)}${n.observacoes.length > 100 ? '...' : ''}"
                                 </p>
                             </div>
-                            <div style="color: #ffc107;"><i class="fas fa-edit"></i></div>
                         </div>
                     </div>`;
             }).join('');
         }
 
-        // Carregar Casos
         async function loadMyCases(memberData) {
             const container = document.getElementById('cases-list');
             const myAtuacaoIds = memberData.atuacoes_ids || [];
-            if (myAtuacaoIds.length === 0) { container.innerHTML = '<p>Nenhum caso.</p>'; return; }
+            if (myAtuacaoIds.length === 0) { container.innerHTML = '<p style="text-align:center; padding:40px;">Nenhum caso ativo.</p>'; return; }
             const [atuSnap, pacSnap, medSnap] = await Promise.all([getDocs(collection(db, "atuacoes")), getDocs(collection(db, "pacientes")), getDocs(collection(db, "medicos"))]);
             const atuMap = new Map(atuSnap.docs.map(d => [d.id, d.data()]));
             const pacMap = new Map(pacSnap.docs.map(d => [d.id, d.data()]));
@@ -260,7 +287,6 @@
             }).join('');
         }
 
-        // Carregar Agenda
         async function loadMyAgenda(memberId) {
             const container = document.getElementById('agenda-list');
             const qAgenda = query(collection(db, "agenda"), where("participantes_ids", "array-contains", memberId));
@@ -309,7 +335,7 @@
             }).join('');
         }
 
-        function formatDate(ds) { if(!ds) return "---"; const [y, m, d] = ds.split('-'); return `${d}/${m}/${y}`; }
+        function formatDate(ds) { if(!ds) return "---"; const p = ds.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : ds; }
 
         document.addEventListener('click', e => {
             if (e.target.classList.contains('tab-btn')) {
@@ -318,7 +344,7 @@
                 document.getElementById(`tab-${e.target.dataset.tab}`).classList.add('active');
             }
             const summary = e.target.closest('.card-summary');
-            if (summary && !e.target.closest('.medico-toggle-card')) {
+            if (summary && !e.target.closest('.medico-toggle-card') && !e.target.closest('#tab-anotacoes')) {
                 summary.closest('.case-card').classList.toggle('expanded');
             }
             if (e.target.classList.contains('medico-detail-photo')) {
@@ -331,8 +357,6 @@
             }
         });
     </script>
-
-    <!-- ADICIONADO: Script que carrega o menu -->
     <script src="menu-loader.js"></script>
 </body>
 </html>
