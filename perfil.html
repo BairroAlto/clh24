@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>O Meu Perfil</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #adb5bd;
+            --background-color: #212529;
+            --surface-color: #2b3035;
+            --text-color: #dee2e6;
+            --text-color-muted: #adb5bd;
+            --border-color: #495057;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 20px; padding-bottom: 80px; }
+        
+        .container { max-width: 1200px; margin: 20px auto; background: var(--surface-color); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        
+        /* Profile Header */
+        .profile-header { display: flex; align-items: center; gap: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 25px; flex-wrap: wrap; }
+        .profile-picture { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; background-color: #495057; border: 2px solid var(--primary-color); }
+        .profile-info h1 { margin: 0; font-size: 2.2em; color: #fff; }
+        .profile-info h2 { margin: 5px 0 10px; font-size: 1.2em; color: var(--text-color-muted); font-weight: 400; }
+
+        /* Tabs */
+        .tabs-container { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; gap: 10px; overflow-x: auto; }
+        .tab-button { background: none; border: none; color: var(--text-color-muted); padding: 14px 20px; cursor: pointer; font-size: 1.1em; border-bottom: 3px solid transparent; transition: 0.3s; white-space: nowrap; }
+        .tab-button:hover { background-color: #343a40; }
+        .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
+        
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Grid & Sections */
+        .info-section { margin-bottom: 30px; }
+        .info-section h3 { color: #fff; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px; font-size: 1.1em; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-grid { display: grid; grid-template-columns: 200px 1fr; gap: 12px 20px; }
+        .info-grid dt { font-weight: 600; color: var(--text-color-muted); }
+        .info-grid dd { margin: 0; color: #fff; }
+
+        /* Tables & Lists */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border: 1px solid var(--border-color); text-align: left; }
+        th { background-color: #343a40; color: var(--text-color-muted); }
+        
+        .atividade-item { background-color: #343a40; padding: 15px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid var(--primary-color); }
+        
+        .btn-action { display: inline-block; background-color: var(--primary-color); color: white !important; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 0.9em; font-weight: 600; }
+
+        /* Loader */
+        #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--background-color); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #343a40; border-top: 4px solid var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+
+        @media (max-width: 768px) {
+            .info-grid { grid-template-columns: 1fr; gap: 5px; }
+            .info-grid dt { font-size: 0.85em; }
+            .profile-header { justify-content: center; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loader-overlay">
+        <div class="spinner"></div>
+        <p style="margin-top:15px">A carregar o seu perfil...</p>
+    </div>
+
+    <div class="container" id="main-container">
+        <!-- Conteúdo via JS -->
+    </div>
+
+    <div id="bottom-menu-placeholder"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
+      authDomain: "medical-5baa0.firebaseapp.com",
+      projectId: "medical-5baa0",
+      storageBucket: "medical-5baa0.appspot.com",
+      messagingSenderId: "900547659131",
+      appId: "1:900547659131:web:708f90f8fa1500d76569de"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const mainContainer = document.getElementById('main-container');
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            try {
+                // Localizar o documento do membro pelo e-mail autenticado
+                const q = query(collection(db, "membrosclh"), where("emails", "array-contains", user.email));
+                const snap = await getDocs(q);
+
+                if (snap.empty) {
+                    mainContainer.innerHTML = "<div class='error'>Perfil não encontrado para o e-mail: " + user.email + "</div>";
+                } else {
+                    const memberId = snap.docs[0].id;
+                    await loadMyProfile(memberId);
+                }
+            } catch (e) {
+                console.error(e);
+                mainContainer.innerHTML = "<div class='error'>Erro ao carregar os dados.</div>";
+            } finally {
+                document.getElementById('loader-overlay').classList.add('hidden');
+            }
+        } else {
+            window.location.href = 'index.html';
+        }
+    });
+
+    async function loadMyProfile(memberId) {
+        // Carregamento de dados paralelos
+        const [memberSnap, congregacoesSnap, atuacoesSnap, medicosSnap, hospitaisRelacionadosSnap] = await Promise.all([
+            getDoc(doc(db, "membrosclh", memberId)),
+            getDocs(collection(db, "congregacoes")), 
+            getDocs(collection(db, "atuacoes")),
+            getDocs(collection(db, "medicos")),
+            // Busca hospitais onde o campo responsavel_ids contém este ID de membro
+            getDocs(query(collection(db, "hospitais"), where("responsavel_ids", "array-contains", memberId)))
+        ]);
+
+        const data = memberSnap.data();
+        const maps = {
+            congregacoes: new Map(congregacoesSnap.docs.map(d => [d.id, d.data().nome])),
+            atuacoes: new Map(atuacoesSnap.docs.map(d => [d.id, d.data()])),
+            medicos: new Map(medicosSnap.docs.map(d => [d.id, d.data()])),
+            meusHospitais: hospitaisRelacionadosSnap.docs.map(d => ({id: d.id, ...d.data()}))
+        };
+
+        renderPage(data, maps, memberId);
+        setupTabs();
+    }
+
+    function renderPage(data, maps, memberId) {
+        const na = 'N/A';
+        const congregacao = maps.congregacoes.get(data.congregacao_id) || na;
+        const foto = data.foto_url || 'https://via.placeholder.com/100/495057/dee2e6?text=Foto';
+
+        mainContainer.innerHTML = `
+            <div class="profile-header">
+                <img src="${foto}" class="profile-picture">
+                <div class="profile-info">
+                    <h1>${data.nome || na}</h1>
+                    <h2>${congregacao} • ${data.grupos?.[0]?.tipo || 'Membro'}</h2>
+                    <a href="master.html?edit=membro_acao&id=${memberId}" class="btn-action">Editar Perfil</a>
+                </div>
+            </div>
+
+            <div class="tabs-container">
+                <button class="tab-button active" data-tab="info">Meus Dados</button>
+                <button class="tab-button" data-tab="atividade">Atividade</button>
+                <button class="tab-button" data-tab="hospitais">Meus Hospitais</button>
+                <button class="tab-button" data-tab="medicos">Meus Médicos</button>
+            </div>
+
+            <!-- TAB: DADOS (Conforme solicitado) -->
+            <div class="tab-content active" id="info">
+                <div class="info-section">
+                    <h3>Informações de Contacto</h3>
+                    <dl class="info-grid">
+                        <dt>Nome Completo</dt><dd>${data.nome_completo || na}</dd>
+                        <dt>E-mails</dt><dd>${data.emails?.join('<br>') || na}</dd>
+                        <dt>Telemóveis</dt><dd>${data.telemoveis?.join(', ') || na}</dd>
+                        <dt>Morada</dt><dd>${data.morada || na}</dd>
+                    </dl>
+                </div>
+                <div class="info-section">
+                    <h3>Estado na Organização</h3>
+                    <dl class="info-grid">
+                        <dt>Congregação</dt><dd>${congregacao}</dd>
+                        <dt>Cartão AER</dt><dd>${data.cartao_aer || 'Não possui'}</dd>
+                        <dt>Ativo</dt><dd>${data.ativo ? 'Sim' : 'Não'}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- TAB: HOSPITAIS -->
+            <div class="tab-content" id="hospitais">
+                ${renderHospitais(maps.meusHospitais)}
+            </div>
+
+            <!-- TAB: MÉDICOS -->
+            <div class="tab-content" id="medicos">
+                ${renderMedicos(data.medicos_responsabilidade_ids, maps.medicos)}
+            </div>
+
+            <!-- TAB: ATIVIDADE -->
+            <div class="tab-content" id="atividade">
+                ${renderAtividades(data.atuacoes_ids, maps.atuacoes)}
+            </div>
+        `;
+    }
+
+    function renderHospitais(hospitais) {
+        if (hospitais.length === 0) return "<p>Não existem hospitais associados à sua responsabilidade.</p>";
+        let rows = hospitais.map(h => `
+            <tr>
+                <td><b>${h.sigla || ''}</b> - ${h.nome}</td>
+                <td>${h.cidade || 'N/A'}</td>
+                <td><a href="hospital.html?id=${h.id}" class="btn-action">Ver Unidade</a></td>
+            </tr>
+        `).join('');
+        return `<table><thead><tr><th>Hospital</th><th>Cidade</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    function renderMedicos(ids, map) {
+        if (!ids || ids.length === 0) return "<p>Sem médicos atribuídos.</p>";
+        let rows = ids.map(id => {
+            const m = map.get(id);
+            return m ? `<tr><td>${m.nome}</td><td><a href="medico.html?id=${id}" class="btn-action">Ver Ficha</a></td></tr>` : '';
+        }).join('');
+        return `<table><thead><tr><th>Médico</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    function renderAtividades(ids, map) {
+        if (!ids || ids.length === 0) return "<p>Nenhuma atividade registada.</p>";
+        return ids.slice(0, 10).map(id => {
+            const item = map.get(id);
+            if (!item) return '';
+            return `
+                <div class="atividade-item">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-weight:bold">${item.tipo}</span>
+                        <span style="color:var(--text-color-muted); font-size:0.8em">${new Date(item.data).toLocaleDateString()}</span>
+                    </div>
+                    <p style="margin:0; font-size:0.95em">${item.observacoes || item.descricao || ''}</p>
+                </div>`;
+        }).join('');
+    }
+
+    function setupTabs() {
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+    }
+</script>
+
+<script src="menu-loader.js"></script>
+</body>
+</html>
