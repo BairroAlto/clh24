@@ -214,7 +214,7 @@
                 if (membroSnap.empty) return;
                 const memberDoc = membroSnap.docs[0];
                 currentMemberId = memberDoc.id;
-                await Promise.all([loadMyCases(memberDoc.data()), loadMyAgenda(memberDoc.id), loadMyNotes(memberDoc.id)]);
+                await Promise.all([loadMyCases(memberDoc.id), loadMyAgenda(memberDoc.id), loadMyNotes(memberDoc.id)]);
                 document.getElementById('loader-overlay').classList.add('hidden');
             }
         });
@@ -307,61 +307,55 @@
             }).join('');
         }
 
-   async function loadMyCases(memberData) {
+async function loadMyCases(memberId) {
     const container = document.getElementById('cases-list');
-    const myAtuacaoIds = memberData.atuacoes_ids || [];
     
-    if (myAtuacaoIds.length === 0) { 
-        container.innerHTML = '<p style="text-align:center; padding:40px; color:var(--secondary-color);">Nenhum caso ativo.</p>'; 
+    const qPedidos = query(
+        collection(db, "pedidos"), 
+        where("status", "==", "Aberto"), 
+        where("membro_ids", "array-contains", memberId)
+    );
+
+    // ADICIONADO: hospSnap no Promise.all para carregar os nomes dos hospitais
+    const [pedidosSnap, pacSnap, medSnap, espSnap, hospSnap] = await Promise.all([
+        getDocs(qPedidos),
+        getDocs(collection(db, "pacientes")), 
+        getDocs(collection(db, "medicos")),
+        getDocs(collection(db, "especialidade")),
+        getDocs(collection(db, "hospitais"))
+    ]);
+
+    if (pedidosSnap.empty) { 
+        container.innerHTML = '<p style="text-align:center; padding:40px; color:var(--secondary-color);">Não tens pedidos em aberto.</p>'; 
         return; 
     }
 
-    // Carregamento global de dados em paralelo (Performance)
-    const [atuSnap, pacSnap, medSnap, espSnap] = await Promise.all([
-        getDocs(collection(db, "atuacoes")), 
-        getDocs(collection(db, "pacientes")), 
-        getDocs(collection(db, "medicos")),
-        getDocs(collection(db, "especialidade")) // Carrega as especialidades
-    ]);
-
-    // Criar Mapas para busca rápida
-    const atuMap = new Map(atuSnap.docs.map(d => [d.id, d.data()]));
     const pacMap = new Map(pacSnap.docs.map(d => [d.id, d.data()]));
     const medMap = new Map(medSnap.docs.map(d => [d.id, { id: d.id, ...d.data() }]));
     const espMap = new Map(espSnap.docs.map(d => [d.id, d.data().nome]));
+    const hospMap = new Map(hospSnap.docs.map(d => [d.id, d.data().nome])); // Mapa de Hospitais
 
-    container.innerHTML = myAtuacaoIds.map(id => {
-        const atu = atuMap.get(id); 
-        if (!atu) return '';
+    container.innerHTML = pedidosSnap.docs.map(doc => {
+        const ped = doc.data();
 
-        // Detalhes do Paciente
-        const pacId = (atu.paciente_ids && atu.paciente_ids.length > 0) ? atu.paciente_ids[0] : null;
+        // Lógica do Paciente
+        const pacId = (ped.paciente_ids && ped.paciente_ids.length > 0) ? ped.paciente_ids[0] : null;
         const pac = pacMap.get(pacId);
         const nomeExibicao = (pac?.nome_completo && pac.nome_completo.trim() !== "") 
                              ? pac.nome_completo 
-                             : (pac?.nome || 'N/A');
+                             : (pac?.nome || 'Paciente N/A');
 
-        // Lógica para Médicos com Link e Especialidades entre parênteses
-        const docsHtml = (atu.medico_ids || [])
+        // Lógica do Hospital
+        const hospitalNome = hospMap.get(ped.hospital_id) || 'Não especificado';
+
+        // Lógica dos Médicos
+        const docsHtml = (ped.medico_ids || [])
             .map(mId => {
                 const med = medMap.get(mId);
                 if (!med) return null;
-
-                // Reúne IDs de especialidades e subespecialidades e traduz para nomes
-                const allEspIds = [
-                    ...(med.especialidade_ids || []),
-                    ...(med.sub_especialidade_ids || [])
-                ];
-                
-                const nomesEspecialidades = allEspIds
-                    .map(eId => espMap.get(eId))
-                    .filter(Boolean); // Remove nulos
-
-                const sufixo = nomesEspecialidades.length > 0 
-                               ? ` (${nomesEspecialidades.join(", ")})` 
-                               : "";
-
-                // Retorna o link HTML para o perfil do médico
+                const allEspIds = [...(med.especialidade_ids || []), ...(med.sub_especialidade_ids || [])];
+                const nomesEspecialidades = allEspIds.map(eId => espMap.get(eId)).filter(Boolean);
+                const sufixo = nomesEspecialidades.length > 0 ? ` (${nomesEspecialidades.join(", ")})` : "";
                 return `<a href="medico.html?id=${med.id}" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">${med.nome}${sufixo}</a>`;
             })
             .filter(Boolean)
@@ -371,17 +365,27 @@
             <div class="case-card">
                 <div class="card-summary">
                     <div class="card-info">
-                        <h3 class="case-title">${formatDate(atu.data)} - ${pac?.nome || 'Paciente s/ Nome'}</h3>
+                        <h3 class="case-title">
+                            <span class="badge-date" style="background:#198754;">${formatDate(ped.data)}</span> 
+                            ${pac?.nome || 'Pedido s/ Nome'}
+                        </h3>
                     </div>
                 </div>
                 <div class="card-details">
                     <p><strong>Paciente:</strong> ${nomeExibicao}</p>
-                    <p><strong>Médicos:</strong> ${docsHtml || 'N/A'}</p>
-                    <p><strong>Observações:</strong> ${atu.observacoes || 'Sem notas'}</p>
+                    <p><strong>Médicos envolvidos:</strong> ${docsHtml || 'Nenhum registado'}</p>
+                    
+                    <!-- CAMPO HOSPITAL ADICIONADO AQUI -->
+                    <p><strong>Hospital:</strong> ${hospitalNome}</p>
+                    
+                    <p><strong>Quem fez o Pedido:</strong> ${ped.descricao || 'N/A'}</p>
+                    
+                    <p style="white-space: pre-wrap;"><strong>Observações:</strong>\n${ped.observacoes || 'Sem notas'}</p>
                 </div>
             </div>`;
     }).join('');
 }
+
 
   async function loadMyAgenda(memberId) {
     const container = document.getElementById('agenda-list');
