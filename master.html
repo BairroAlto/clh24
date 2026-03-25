@@ -164,10 +164,19 @@
     .multi-search-select-pill .remove-pill { margin-left: 8px; cursor: pointer; font-weight: bold; }
     .multi-search-select-input { flex-grow: 1; border: none; background: none; color: var(--text-color); padding: 5px; min-width: 150px; font-size: 1em; }
     .multi-search-select-input:focus { outline: none; }
-    .multi-search-select-dropdown {
-        display: none; position: absolute; background-color: var(--surface-color); border: 1px solid var(--border-color);
-        border-top: none; z-index: 1001; width: 100%; max-height: 200px; overflow-y: auto; border-radius: 0 0 4px 4px;
-    }
+   .multi-search-select-dropdown {
+    display: none; 
+    position: absolute; 
+    background-color: var(--surface-color); 
+    border: 1px solid var(--border-color);
+    z-index: 10005; /* Valor alto para ficar acima de tudo */
+    width: 100%; 
+    max-height: 250px; 
+    overflow-y: auto; 
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    left: 0;
+}
     .multi-search-select-item { position: relative; display: flex; align-items: center; padding: 10px; cursor: pointer; justify-content: flex-start; }
     .multi-search-select-item label { margin-bottom: 0; cursor: pointer; flex-grow: 1; padding-left: 30px; position: relative; user-select: none; }
     .multi-search-select-item input[type="checkbox"] { position: absolute; opacity: 0; cursor: pointer; height: 0; width: 0; }
@@ -179,7 +188,14 @@
     .multi-search-select-item input[type="checkbox"]:checked + label::after { display: block; }
 
     /* --- BOTÕES E OUTROS --- */
-    .form-actions { display: flex; gap: 10px; align-items: center; }
+ .form-actions {
+    display: flex;
+    gap: 8px;            /* Espaço entre os botões */
+    width: 100%;         /* Ocupa a largura total disponível */
+    margin-top: 20px;
+    align-items: stretch; /* Garante que todos estiquem para a mesma altura */
+}
+
     .dynamic-list .input-group { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
     .dynamic-list .input-group > * { flex-grow: 1; }
     .dynamic-list .input-group > .btn { flex-grow: 0; }
@@ -285,31 +301,34 @@
 
 .list-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
+    flex-direction: column; /* No mobile, título e filtros ficam um por cima do outro */
     gap: 15px;
     margin-bottom: 15px;
 }
 .list-header h3 { 
     margin: 0; 
     border-bottom: none; 
-    padding-bottom: 0; 
+    padding-bottom: 0;
+    font-size: 1.1em;
 }
+
+/* Container dos Filtros */
 .header-filters {
     display: flex;
+    flex-direction: column; /* Stack vertical no mobile */
     gap: 10px;
-    flex-grow: 1;
-    justify-content: flex-end;
+    width: 100%;
 }
 /* Versão compacta do multi-select para cabeçalhos */
 .header-filters .multi-search-select-container {
-    width: 200px;
-    font-size: 0.85em;
+    width: 100% !important; /* Ocupa a largura total do ecrã */
+    font-size: 0.9em;
 }
+
+/* Ajuste das pills (chips) para não esmagarem o input no mobile */
 .header-filters .multi-search-select-input-wrapper {
-    min-height: 32px;
-    padding: 2px 5px;
+    min-height: 40px;
+    padding: 5px;
 }
 
 /* Estilo para o campo dropdown quando selecionado "Sim" */
@@ -339,7 +358,48 @@
     position: relative;
 }
 
+@media (min-width: 769px) {
+    .list-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
 
+    .header-filters {
+        flex-direction: row;
+        width: auto;
+        justify-content: flex-end;
+    }
+
+    .header-filters .multi-search-select-container {
+        width: 200px !important; /* Largura fixa apenas em ecrãs grandes */
+    }
+}
+
+/* Estilização comum para os botões de ação */
+.form-actions .btn {
+    flex: 1;             /* Faz cada botão ocupar exatamente a mesma fração do ecrã */
+    display: flex;       /* Permite alinhar o texto verticalmente */
+    align-items: center; /* Centra o texto na vertical */
+    justify-content: center; /* Centra o texto na horizontal */
+    text-align: center;
+    min-height: 60px;    /* Altura mínima para acomodar 2 ou 3 linhas de texto */
+    padding: 8px 4px;    /* Padding interno reduzido */
+    font-size: 0.75em;   /* Fonte ajustada para não transbordar no mobile */
+    line-height: 1.2;    /* Espaçamento entre linhas do texto */
+    font-weight: bold;
+    text-transform: uppercase;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+/* Ajuste específico para ecrãs muito pequenos (iPhone SE, etc) */
+@media (max-width: 360px) {
+    .form-actions .btn {
+        font-size: 0.65em; /* Texto ainda mais pequeno para ecrãs minúsculos */
+        min-height: 70px;  /* Aumenta a altura se o texto quebrar em muitas linhas */
+    }
+}
 
 </style>
 
@@ -870,6 +930,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 let currentMemberId = ""; let selectedMedicoId = "";
+
 
 // --- VARIÁVEIS GLOBAIS ---
 let currentEditId = null;
