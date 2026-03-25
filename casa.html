@@ -3,94 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meus Casos</title>
+    <title>Meus Casos & Agenda</title>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
         :root {
-            --primary-color: #0d6efd; --secondary-color: #adb5bd; --background-color: #212529;
-            --surface-color: #2b3035; --text-color: #dee2e6; --border-color: #495057;
+            --primary-color: #0d6efd; 
+            --secondary-color: #adb5bd; 
+            --background-color: #212529;
+            --surface-color: #2b3035; 
+            --text-color: #dee2e6; 
+            --border-color: #495057;
+            --card-bg: #343a40;
         }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 20px; }
-        .container { max-width: 1400px; margin: auto; background: var(--surface-color); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
-        /* Estilo original do h1 restaurado */
-        h1 { color: #fff; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 20px; padding-bottom: 80px; }
         
-        #cases-list { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
-        .case-card { background-color: #343a40; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; transition: background-color 0.3s; }
+        /* Container principal que centraliza tudo */
+        .container { max-width: 1200px; margin: auto; background: var(--surface-color); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
+        
+        h1 { color: #fff; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
+
+        /* --- ABAS --- */
+        .tabs-nav { display: flex; gap: 5px; border-bottom: 2px solid var(--border-color); margin-bottom: 25px; }
+        .tab-btn { background: none; border: none; color: var(--secondary-color); padding: 12px 25px; cursor: pointer; font-size: 1em; font-weight: bold; transition: 0.3s; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+        .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+        .tab-content { display: none; min-height: 400px; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease; }
+
+        /* --- CARDS PRINCIPAIS --- */
+        .list-container { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; width: 100%; }
+        .case-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
         .card-summary { display: flex; align-items: center; padding: 15px; cursor: pointer; position: relative; }
         .card-summary:hover { background-color: #3a4045; }
         .card-info { flex-grow: 1; }
-        .card-info .case-title { font-size: 1.2em; font-weight: 600; margin: 0; color: #fff; }
-        .card-summary::after { content: '▾'; font-size: 1.5em; transition: transform 0.3s ease; margin-left: 15px; }
-        .case-card.expanded .card-summary::after { transform: rotate(180deg); }
-        .card-details { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out, padding 0.4s ease-out; padding: 0 20px; border-top: 1px solid var(--border-color); }
-        .case-card.expanded .card-details { max-height: 500px; padding: 20px; }
-        .detail-item { margin: 0 0 12px 0; font-size: 0.95em; }
-        .detail-item strong { color: var(--secondary-color); display: block; margin-bottom: 4px; }
+        .card-info .case-title { font-size: 1.1em; font-weight: 600; margin: 0; color: #fff; }
+        .card-summary::after { content: '\f107'; font-family: 'Font Awesome 6 Free'; font-weight: 900; margin-left: 15px; transition: 0.3s; color: var(--secondary-color); }
+        .case-card.expanded .card-summary::after { transform: rotate(180deg); color: var(--primary-color); }
+        .card-details { max-height: 0; overflow: hidden; transition: all 0.3s ease-out; padding: 0 20px; border-top: 1px solid transparent; }
+        .case-card.expanded .card-details { max-height: 2000px; padding: 20px; border-top-color: var(--border-color); }
 
-        #loader-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--background-color);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            transition: opacity 0.5s ease-out;
-            opacity: 1;
-        }
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid var(--surface-color);
-            border-top: 5px solid var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        #loader-overlay p {
-            font-size: 1.1em;
-            color: var(--text-color);
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        #loader-overlay.hidden {
-            opacity: 0;
-            pointer-events: none; /* Impede interações com o overlay invisível */
-        }
+        /* --- MÉDICOS E OUTROS --- */
+        .medico-item-container { display: flex; flex-direction: column; gap: 10px; }
+        .medico-toggle-card { background: #2b3035; border: 1px solid #3d4248; border-radius: 6px; overflow: hidden; }
+        .medico-header { display: flex; align-items: center; padding: 10px 15px; cursor: pointer; gap: 15px; }
+        .medico-header:hover { background: #343a40; }
+        .medico-header img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color); pointer-events: none; }
+        .medico-name { flex-grow: 1; font-weight: 600; color: #fff; }
+        .medico-details-inner { display: none; padding: 15px; background: #1f2327; border-top: 1px solid #3d4248; }
+        .medico-toggle-card.open .medico-details-inner { display: block; }
+
+        .medico-info-row { display: flex; gap: 20px; align-items: flex-start; margin: 15px 0; }
+        .medico-detail-photo { width: 100px; height: 100px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border-color); cursor: zoom-in; }
+        .med-info-grid { display: grid; grid-template-columns: 100px 1fr; gap: 5px; flex-grow: 1; margin: 0; }
+        .med-info-grid dt { color: var(--secondary-color); font-weight: bold; font-size: 0.75em; text-transform: uppercase; }
+        .med-info-grid dd { margin: 0; color: #dee2e6; font-size: 0.9em; }
+        .med-atuacoes-list { background: #2b3035; padding: 10px; border-radius: 4px; border-left: 3px solid var(--primary-color); margin-top: 5px; font-size: 0.85em; }
+
+        .btn-visit-profile, .btn-note { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 4px; text-decoration: none; font-size: 0.75em; font-weight: bold; margin-bottom: 10px; cursor: pointer; border: 1px solid; }
+        .btn-visit-profile { background: rgba(13, 110, 253, 0.1); color: var(--primary-color); border-color: var(--primary-color); }
+        .btn-note { background: rgba(255, 193, 7, 0.1); color: #ffc107; border-color: #ffc107; margin-left: 5px; }
+
+        /* --- LIGHTBOX & MODALS --- */
+        .image-modal, .modal-anotacao { display: none; position: fixed; z-index: 10002; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; opacity: 0; transition: 0.3s; }
+        .image-modal.active, .modal-anotacao.active { display: flex; opacity: 1; }
+        .image-modal img { max-width: 90%; max-height: 90%; border-radius: 8px; transform: scale(0.8); transition: 0.3s; }
+        .image-modal.active img { transform: scale(1); }
+        .close-modal { position: absolute; top: 20px; right: 35px; color: #fff; font-size: 40px; cursor: pointer; }
+
+        .modal-content { background: var(--surface-color); padding: 25px; border-radius: 8px; width: 90%; max-width: 600px; border: 1px solid var(--border-color); }
+        .modal-content textarea { width: 100%; min-height: 200px; background: var(--background-color); color: var(--text-color); border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; margin: 15px 0; font-family: inherit; resize: vertical; box-sizing: border-box;}
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+        .btn-save-note { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        .btn-cancel-note { background: var(--secondary-color); color: var(--background-color); border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+
+        /* --- LOADER --- */
+        #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--background-color); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+        .spinner { width: 50px; height: 50px; border: 5px solid var(--surface-color); border-top: 5px solid var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #loader-overlay.hidden { display: none; }
+        .badge-date { background: var(--primary-color); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; margin-right: 10px; }
+  
     </style>
 </head>
 <body>
-    <!-- Ecrã de Carregamento -->
-    <div id="loader-overlay">
-        <div class="spinner"></div>
-        <p>A verificar a sua sessão...</p>
-    </div>
+
+    <div id="loader-overlay"><div class="spinner"></div></div>
 
     <div class="container">
-        <!-- O título será adicionado dinamicamente ou pode ser fixo -->
-        <h1>Meus Casos</h1>
-        
-        <!-- A lista de casos será preenchida aqui -->
-        <div id="cases-list"></div>
+        <!-- ABAS -->
+        <div class="tabs-nav">
+            <button class="tab-btn active" data-tab="meus-casos">MEUS CASOS</button>
+            <button class="tab-btn" data-tab="agenda">AGENDA</button>
+            <button class="tab-btn" data-tab="anotacoes">ANOTAÇÕES</button>
+        </div>
 
-        <!-- Placeholder onde o menu será carregado -->
-        <div id="bottom-menu-placeholder"></div>
+        <!-- CONTEÚDO: MEUS CASOS -->
+        <div id="tab-meus-casos" class="tab-content active">
+            <h1>Casos Ativos</h1>
+            <div id="cases-list" class="list-container"></div>
+        </div>
+
+        <!-- CONTEÚDO: AGENDA -->
+        <div id="tab-agenda" class="tab-content">
+            <h1>Minha Agenda</h1>
+            <div id="agenda-list" class="list-container"></div>
+        </div>
+
+        <!-- CONTEÚDO: ANOTAÇÕES -->
+        <div id="tab-anotacoes" class="tab-content">
+            <h1>Minhas Anotações</h1>
+            <div id="notes-list" class="list-container"></div>
+        </div>
     </div>
 
-    <!-- CORREÇÃO: Adicionado o atributo 'defer' para garantir que o script só roda após o HTML ser carregado. -->
-    <script type="module" defer>
-        // Importações do Firebase SDK
+    <!-- MODAL LIGHTBOX -->
+    <div id="image-modal-overlay" class="image-modal">
+        <span class="close-modal">&times;</span>
+        <img id="modal-img-content" src="">
+    </div>
+
+    <!-- MODAL DE ANOTAÇÃO -->
+    <div id="modal-note" class="modal-anotacao">
+        <div class="modal-content">
+            <h3 id="note-medico-nome">Anotação para Dr. ...</h3>
+            <textarea id="note-text" placeholder="Escreva aqui a anotação..."></textarea>
+            <div class="modal-actions">
+                <button class="btn-cancel-note" onclick="closeNoteModal()">Cancelar</button>
+                <button class="btn-save-note" id="confirm-save-note">Gravar Anotação</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADICIONADO: Placeholder para o Menu Inferior -->
+    <div id="bottom-menu-placeholder"></div>
+
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, getDocs, query, where, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
@@ -106,130 +157,182 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // Estas variáveis agora serão inicializadas corretamente pois o script roda depois do HTML.
-        const casesListContainer = document.getElementById('cases-list');
-        const loader = document.getElementById('loader-overlay');
+        let currentMemberId = "";
+        let selectedMedicoId = "";
 
-        // O "PORTEIRO" DA PÁGINA
-        onAuthStateChanged(auth, user => {
+        onAuthStateChanged(auth, async user => {
             if (user) {
-                // SUCESSO: O utilizador está logado.
-                const minimumDelayPromise = new Promise(resolve => setTimeout(resolve, 1000));
-                
-                Promise.all([
-                    loadMyCases(user.uid),
-                    minimumDelayPromise
-                ]).then(() => {
-                    // Isto só executa quando AMBOS terminarem.
-                    loader.classList.add('hidden');
-                }).catch(error => {
-                    // Se houver um erro a carregar os dados, escondemos o loader e mostramos o erro.
-                    console.error("Erro no processo de carregamento:", error);
-                    casesListContainer.innerHTML = '<p style="text-align: center;">Ocorreu um erro ao carregar os seus casos.</p>';
-                    loader.classList.add('hidden');
-                });
-
-            } else {
-                // FALHA: O utilizador não está logado. Redirecionar.
-                window.location.href = 'index.html';
+                const qMembro = query(collection(db, "membrosclh"), where("emails", "array-contains", user.email));
+                const membroSnap = await getDocs(qMembro);
+                if (membroSnap.empty) return;
+                const memberDoc = membroSnap.docs[0];
+                currentMemberId = memberDoc.id;
+                await Promise.all([loadMyCases(memberDoc.data()), loadMyAgenda(memberDoc.id), loadMyNotes(memberDoc.id)]);
+                document.getElementById('loader-overlay').classList.add('hidden');
             }
         });
 
-        async function loadMyCases(currentUserId) {
-            casesListContainer.innerHTML = '';
-            
+        // Funções de Modal
+        window.openNoteModal = function(medId, medNome) {
+            selectedMedicoId = medId;
+            document.getElementById('note-medico-nome').textContent = `Anotação: ${medNome}`;
+            document.getElementById('note-text').value = "";
+            document.getElementById('modal-note').classList.add('active');
+        }
+
+        window.closeNoteModal = function() {
+            document.getElementById('modal-note').classList.remove('active');
+        }
+
+        document.getElementById('confirm-save-note').addEventListener('click', async () => {
+            const text = document.getElementById('note-text').value.trim();
+            if(!text) return alert("Escreva algo.");
             try {
-                const [atuacoesSnap, pacientesSnap, medicosSnap] = await Promise.all([
-                    getDocs(collection(db, "atuacoes")),
-                    getDocs(collection(db, "pacientes")),
-                    getDocs(collection(db, "medicos"))
-                ]);
-                
-                const atuacoesMap = new Map(atuacoesSnap.docs.map(d => [d.id, d.data()]));
-                const pacientesMap = new Map(pacientesSnap.docs.map(d => [d.id, d.data()]));
-                const medicosMap = new Map(medicosSnap.docs.map(d => [d.id, d.data()]));
+                await addDoc(collection(db, "anotacoes"), {
+                    observacoes: text,
+                    medico_ids: [selectedMedicoId],
+                    membro_ids: [currentMemberId],
+                    data: new Date().toISOString().split('T')[0],
+                    timestamp: serverTimestamp()
+                });
+                alert("Anotação guardada!");
+                closeNoteModal();
+                loadMyNotes(currentMemberId);
+            } catch(e) { console.error(e); }
+        });
 
-                const memberRef = doc(db, "membrosclh", currentUserId);
-                const memberSnap = await getDoc(memberRef);
+        async function loadMyNotes(memberId) {
+            const container = document.getElementById('notes-list');
+            const qNotes = query(collection(db, "anotacoes"), where("membro_ids", "array-contains", memberId));
+            const [notesSnap, medSnap] = await Promise.all([getDocs(qNotes), getDocs(collection(db, "medicos"))]);
+            const medMap = new Map(medSnap.docs.map(d => [d.id, d.data().nome]));
 
-                if (!memberSnap.exists()) { throw new Error("Membro não encontrado."); }
-
-                const memberData = memberSnap.data();
-                const myAtuacaoIds = memberData.atuacoes_ids || [];
-
-                if (myAtuacaoIds.length === 0) {
-                    casesListContainer.innerHTML = '<p style="text-align: center;">Você não tem casos ativos de momento.</p>';
-                    return;
-                }
-                
-                const myCases = myAtuacaoIds.map(atuacaoId => {
-                    const atuacao = atuacoesMap.get(atuacaoId);
-                    if (!atuacao) return null;
-
-                    const patientIds = atuacao.paciente_ids || [];
-                    const medicoIds = atuacao.medico_ids || [];
-                    const patient = patientIds.length > 0 ? pacientesMap.get(patientIds[0]) : null;
-                    const doctorNames = medicoIds.map(id => medicosMap.has(id) ? medicosMap.get(id).nome : null).filter(Boolean).join(', ');
-
-                    return {
-                        id: atuacaoId,
-                        displayDate: formatDate(atuacao.data),
-                        patientName: patient ? patient.nome : 'Paciente Desconhecido',
-                        patientFullName: patient ? patient.nome_completo : 'N/A',
-                        doctorNames: doctorNames || 'Nenhum médico associado',
-                        observations: atuacao.observacoes || '',
-                        rawDate: atuacao.data
-                    };
-                }).filter(Boolean);
-
-                myCases.sort((a, b) => b.rawDate.localeCompare(a.rawDate));
-                renderCards(myCases);
-
-            } catch (error) {
-                console.error("Erro ao carregar casos:", error);
-                casesListContainer.innerHTML = '<p style="text-align: center;">Ocorreu um erro ao carregar os seus casos.</p>';
-                throw error;
+            if (notesSnap.empty) {
+                container.innerHTML = '<p style="text-align:center; padding:40px; color:var(--secondary-color);">Não tens anotações pendentes.</p>';
+                return;
             }
-        }
-        
-        function renderCards(casesData) {
-            if (casesData.length === 0) { 
-                casesListContainer.innerHTML = '<p style="text-align: center;">Você não tem casos ativos de momento.</p>'; 
-                return; 
-            }
-            const cardsHtml = casesData.map(caseItem => `
-                <div class="case-card" data-id="${caseItem.id}">
-                    <div class="card-summary">
-                        <div class="card-info">
-                            <h3 class="case-title">${caseItem.displayDate} - ${caseItem.patientName}</h3>
+
+            container.innerHTML = notesSnap.docs.map(doc => {
+                const n = doc.data();
+                const medNome = (n.medico_ids || []).map(id => medMap.get(id)).join(", ") || "Médico Indefinido";
+                return `
+                    <div class="case-card" onclick="window.location.href='master.html?edit=anotacao&id=${doc.id}'" 
+                         style="border-left: 4px solid #ffc107; cursor:pointer;">
+                        <div style="display: flex; align-items: center; padding: 20px; gap: 15px;">
+                            <div class="card-info" style="flex-grow: 1;">
+                                <h3 class="case-title" style="margin-bottom: 8px;">
+                                    <span class="badge-date" style="background:#ffc107; color:#000;">${formatDate(n.data)}</span> 
+                                    ${medNome}
+                                </h3>
+                                <p style="font-size:0.9em; color:var(--secondary-color); margin: 0; font-style: italic;">
+                                    "${n.observacoes.substring(0,100)}${n.observacoes.length > 100 ? '...' : ''}"
+                                </p>
+                            </div>
+                            <div style="color: #ffc107;"><i class="fas fa-edit"></i></div>
                         </div>
-                    </div>
-                    <div class="card-details">
-                        <p class="detail-item"><strong>Doente:</strong> <span>${caseItem.patientName || 'N/A'}</span></p>
-                        <p class="detail-item"><strong>Nome Completo:</strong> <span>${caseItem.patientFullName || 'N/A'}</span></p>
-                        <p class="detail-item"><strong>Médico(s) do Caso:</strong> <span>${caseItem.doctorNames || 'N/A'}</span></p>
-                        <p class="detail-item"><strong>Observações:</strong> <span>${caseItem.observations || 'Nenhuma'}</span></p>
-                    </div>
-                </div>`).join('');
-            casesListContainer.innerHTML = cardsHtml;
+                    </div>`;
+            }).join('');
         }
 
-        function formatDate(dateString) {
-            if (!dateString || !dateString.includes('-')) return 'Data Inválida';
-            const parts = dateString.split('-');
-            if (parts.length !== 3) return 'Data Inválida';
-            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        // Carregar Casos
+        async function loadMyCases(memberData) {
+            const container = document.getElementById('cases-list');
+            const myAtuacaoIds = memberData.atuacoes_ids || [];
+            if (myAtuacaoIds.length === 0) { container.innerHTML = '<p>Nenhum caso.</p>'; return; }
+            const [atuSnap, pacSnap, medSnap] = await Promise.all([getDocs(collection(db, "atuacoes")), getDocs(collection(db, "pacientes")), getDocs(collection(db, "medicos"))]);
+            const atuMap = new Map(atuSnap.docs.map(d => [d.id, d.data()]));
+            const pacMap = new Map(pacSnap.docs.map(d => [d.id, d.data()]));
+            const medMap = new Map(medSnap.docs.map(d => [d.id, d.data()]));
+
+            container.innerHTML = myAtuacaoIds.map(id => {
+                const atu = atuMap.get(id); if (!atu) return '';
+                const pac = pacMap.get(atu.paciente_ids?.[0]);
+                const docs = atu.medico_ids?.map(mId => medMap.get(mId)?.nome).filter(Boolean).join(", ");
+                return `
+                    <div class="case-card">
+                        <div class="card-summary"><div class="card-info"><h3 class="case-title">${formatDate(atu.data)} - ${pac?.nome || '...'}</h3></div></div>
+                        <div class="card-details">
+                            <p><strong>Paciente:</strong> ${pac?.nome_completo || 'N/A'}</p>
+                            <p><strong>Médicos:</strong> ${docs || 'N/A'}</p>
+                            <p><strong>Observações:</strong> ${atu.observacoes || 'Sem notas'}</p>
+                        </div>
+                    </div>`;
+            }).join('');
         }
 
-        // Este listener agora funcionará corretamente.
-        casesListContainer.addEventListener('click', e => {
+        // Carregar Agenda
+        async function loadMyAgenda(memberId) {
+            const container = document.getElementById('agenda-list');
+            const qAgenda = query(collection(db, "agenda"), where("participantes_ids", "array-contains", memberId));
+            const [agendaSnap, medSnap, espSnap, atuSnap] = await Promise.all([getDocs(qAgenda), getDocs(collection(db, "medicos")), getDocs(collection(db, "especialidade")), getDocs(collection(db, "atuacoes"))]);
+            const medMap = new Map(medSnap.docs.map(d => [d.id, {id: d.id, ...d.data()}]));
+            const espMap = new Map(espSnap.docs.map(d => [d.id, d.data().nome]));
+            const atuMap = new Map(atuSnap.docs.map(d => [d.id, d.data()]));
+
+            container.innerHTML = agendaSnap.docs.map(doc => {
+                const agenda = doc.data();
+                const meds = (agenda.medico_ids || []).map(id => medMap.get(id)).filter(Boolean);
+                return `
+                    <div class="case-card">
+                        <div class="card-summary"><div class="card-info"><h3 class="case-title"><span class="badge-date">${formatDate(agenda.data_agendada)}</span>Trabalho de Campo</h3></div></div>
+                        <div class="card-details">
+                            <div class="medico-item-container">
+                                ${meds.map(med => {
+                                    const esps = (med.especialidade_ids || []).map(id => espMap.get(id)).filter(Boolean).join(", ");
+                                    const atus = (med.atuacoes_ids || []).map(id => atuMap.get(id)).filter(Boolean).sort((a,b) => b.data.localeCompare(a.data)).map(a => `<div class="med-atuacoes-list"><b>${formatDate(a.data)}</b>: ${a.observacoes}</div>`).join("");
+                                    return `
+                                        <div class="medico-toggle-card">
+                                            <div class="medico-header" onclick="this.parentElement.classList.toggle('open')">
+                                                <img src="${med.imagem_url || 'https://via.placeholder.com/45'}">
+                                                <div class="medico-name">${med.nome}</div>
+                                                <i class="fas fa-chevron-down"></i>
+                                            </div>
+                                            <div class="medico-details-inner">
+                                                <a href="medico.html?id=${med.id}" class="btn-visit-profile"><i class="fas fa-external-link-alt"></i> Perfil</a>
+                                                <button class="btn-note" onclick="openNoteModal('${med.id}', '${med.nome}')"><i class="fas fa-sticky-note"></i> Anotação</button>
+                                                <div class="medico-info-row">
+                                                    <img src="${med.imagem_url || 'https://via.placeholder.com/100'}" class="medico-detail-photo">
+                                                    <dl class="med-info-grid">
+                                                        <dt>Género</dt><dd>${med.genero || 'N/A'}</dd>
+                                                        <dt>Especialidade</dt><dd>${esps || 'N/A'}</dd>
+                                                        <dt>Última Visita</dt><dd>${med.ultimaVisita ? formatDate(med.ultimaVisita) : 'Nunca'}</dd>
+                                                    </dl>
+                                                </div>
+                                                <strong style="font-size:0.8em; color:var(--primary-color)">HISTÓRICO</strong>
+                                                ${atus || '<p>Sem registos.</p>'}
+                                            </div>
+                                        </div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function formatDate(ds) { if(!ds) return "---"; const [y, m, d] = ds.split('-'); return `${d}/${m}/${y}`; }
+
+        document.addEventListener('click', e => {
+            if (e.target.classList.contains('tab-btn')) {
+                document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
+                e.target.classList.add('active');
+                document.getElementById(`tab-${e.target.dataset.tab}`).classList.add('active');
+            }
             const summary = e.target.closest('.card-summary');
-            if (summary) {
+            if (summary && !e.target.closest('.medico-toggle-card')) {
                 summary.closest('.case-card').classList.toggle('expanded');
+            }
+            if (e.target.classList.contains('medico-detail-photo')) {
+                const modal = document.getElementById('image-modal-overlay');
+                document.getElementById('modal-img-content').src = e.target.src;
+                modal.classList.add('active');
+            }
+            if (e.target.closest('.image-modal') || e.target.classList.contains('close-modal')) {
+                document.getElementById('image-modal-overlay').classList.remove('active');
             }
         });
     </script>
-    
+
+    <!-- ADICIONADO: Script que carrega o menu -->
     <script src="menu-loader.js"></script>
 </body>
 </html>
