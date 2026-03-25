@@ -3,86 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>O Meu Perfil</title>
+    <title>O Meu Perfil & Agenda</title>
 
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <style>
         :root {
             --primary-color: #0d6efd;
-            --secondary-color: #adb5bd;
-            --background-color: #212529;
+            --primary-hover: #0b5ed7;
+            --background-color: #1a1d21;
             --surface-color: #2b3035;
+            --card-color: #343a40;
             --text-color: #dee2e6;
-            --text-color-muted: #adb5bd;
+            --text-muted: #adb5bd;
             --border-color: #495057;
+            --yellow-accent: #ffc107;
         }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--background-color); color: var(--text-color); margin: 0; padding: 20px; padding-bottom: 80px; }
-        
-        .container { max-width: 1200px; margin: 20px auto; background: var(--surface-color); padding: 25px; border-radius: 8px; border: 1px solid var(--border-color); }
-        
+
+        body { 
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif; 
+            background-color: var(--background-color); 
+            color: var(--text-color); 
+            margin: 0; padding: 20px; padding-bottom: 100px;
+        }
+
+        .container { 
+            max-width: 1100px; margin: auto; 
+            background: var(--surface-color); 
+            padding: 30px; border-radius: 12px; 
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
         /* Profile Header */
-        .profile-header { display: flex; align-items: center; gap: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 25px; flex-wrap: wrap; }
-        .profile-picture { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; background-color: #495057; border: 2px solid var(--primary-color); }
-        .profile-info h1 { margin: 0; font-size: 2.2em; color: #fff; }
-        .profile-info h2 { margin: 5px 0 10px; font-size: 1.2em; color: var(--text-color-muted); font-weight: 400; }
+        .profile-header { display: flex; align-items: center; gap: 30px; margin-bottom: 40px; }
+        .profile-picture { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); padding: 3px; }
+        .profile-info h1 { margin: 0; font-size: 2.2em; letter-spacing: -0.5px; }
+        .profile-info p { margin: 5px 0; color: var(--text-muted); font-size: 1.1em; }
 
-        /* Tabs */
-        .tabs-container { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; gap: 10px; overflow-x: auto; }
-        .tab-button { background: none; border: none; color: var(--text-color-muted); padding: 14px 20px; cursor: pointer; font-size: 1.1em; border-bottom: 3px solid transparent; transition: 0.3s; white-space: nowrap; }
-        .tab-button:hover { background-color: #343a40; }
-        .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
-        
-        .tab-content { display: none; animation: fadeIn 0.3s ease; }
-        .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* Grid & Sections */
-        .info-section { margin-bottom: 30px; }
-        .info-section h3 { color: #fff; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px; font-size: 1.1em; text-transform: uppercase; letter-spacing: 0.5px; }
-        .info-grid { display: grid; grid-template-columns: 200px 1fr; gap: 12px 20px; }
-        .info-grid dt { font-weight: 600; color: var(--text-color-muted); }
-        .info-grid dd { margin: 0; color: #fff; }
-
-        /* Tables & Lists */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; border: 1px solid var(--border-color); text-align: left; }
-        th { background-color: #343a40; color: var(--text-color-muted); }
-        
-        .atividade-item { background-color: #343a40; padding: 15px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid var(--primary-color); }
-        
-        .btn-action { display: inline-block; background-color: var(--primary-color); color: white !important; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 0.9em; font-weight: 600; }
-
-        /* Loader */
-        #loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--background-color); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #343a40; border-top: 4px solid var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .hidden { display: none !important; }
-
-        @media (max-width: 768px) {
-            .info-grid { grid-template-columns: 1fr; gap: 5px; }
-            .info-grid dt { font-size: 0.85em; }
-            .profile-header { justify-content: center; text-align: center; }
+        /* Custom Tabs Principal */
+        .tabs-container { display: flex; gap: 5px; border-bottom: 1px solid var(--border-color); margin-bottom: 25px; }
+        .tab-button { 
+            background: none; border: none; color: var(--text-muted); padding: 12px 20px; 
+            cursor: pointer; font-size: 1em; border-bottom: 3px solid transparent; transition: 0.3s;
         }
+        .tab-button:hover { color: #fff; }
+        .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: bold; }
+
+        /* Sub-Tabs Agenda (Style Pill) */
+        .sub-tabs { display: flex; gap: 10px; margin-bottom: 25px; }
+        .sub-tab-button { 
+            background: var(--background-color); border: 1px solid var(--border-color); 
+            color: var(--text-muted); padding: 8px 18px; border-radius: 20px; 
+            cursor: pointer; font-size: 0.9em; transition: 0.3s;
+        }
+        .sub-tab-button.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+
+        /* Cards e Layout */
+        .agenda-card { 
+            background: var(--card-color); padding: 20px; border-radius: 10px; 
+            border: 1px solid var(--border-color); margin-bottom: 20px;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease; }
+
+        /* Grid de Filtros */
+        .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { font-size: 0.9em; color: var(--text-muted); font-weight: 600; }
+
+        /* Inputs e Selects */
+        .custom-input { 
+            background: var(--background-color); border: 1px solid var(--border-color); 
+            color: #fff; padding: 12px; border-radius: 6px; font-size: 1em; outline: none;
+        }
+        .custom-input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2); }
+        .custom-input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Dropdowns Pesquisáveis */
+      .search-select-container { 
+    position: relative; 
+    display: flex;
+    flex-direction: column;
+}
+
+       .search-select-dropdown { 
+    position: absolute; 
+    top: 100%; 
+    left: 0; 
+    width: 100%; 
+    max-height: 200px; /* Reduzido ligeiramente para não ocupar o ecrã todo no telemóvel */
+    overflow-y: auto; 
+    background: var(--surface-color); 
+    border: 1px solid var(--border-color); 
+    z-index: 10001; /* Valor muito alto para ignorar o menu inferior */
+    display: none; 
+    border-radius: 0 0 6px 6px; 
+    box-shadow: 0 -5px 25px rgba(0,0,0,0.5), 0 10px 25px rgba(0,0,0,0.5);
+}
+        .search-select-dropdown.show { display: block; }
+        .search-option { display: flex; align-items: center; padding: 10px 15px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .search-option:hover { background: var(--primary-color); color: #fff; }
+        .search-option input { margin-right: 12px; width: 16px; height: 16px; }
+        .selected-badge { 
+    font-size: 0.8em; 
+    color: var(--yellow-accent); 
+    margin-top: 4px; 
+    font-weight: 500;
+    display: block;
+    min-height: 1em;
+}
+
+        /* Lista de Médicos */
+        .medico-list { 
+            background: var(--background-color); border-radius: 8px; border: 1px solid var(--border-color);
+            max-height: 350px; overflow-y: auto; margin-top: 15px;
+        }
+        .medico-row { 
+            display: flex; align-items: center; gap: 15px; padding: 12px 20px; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); transition: 0.2s;
+        }
+        .medico-row:hover { background: rgba(255,255,255,0.03); }
+        .medico-row input { width: 18px; height: 18px; cursor: pointer; }
+
+        /* Botões */
+        .btn-group { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-secondary { 
+            background: #495057; color: #fff; border: none; padding: 8px 16px; 
+            border-radius: 6px; cursor: pointer; font-size: 0.9em; font-weight: 600;
+        }
+        .btn-secondary:hover { background: #5a6268; }
+        
+        .btn-primary { 
+            background: var(--primary-color); color: #fff; border: none; 
+            padding: 12px 25px; border-radius: 6px; cursor: pointer; 
+            font-size: 1.1em; font-weight: bold; width: 100%; transition: 0.2s;
+        }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+        /* Grid Dados Pessoais */
+        .info-section { margin-bottom: 35px; }
+        .info-section h3 { font-size: 1.1em; color: var(--primary-color); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; }
+        .info-grid { display: grid; grid-template-columns: 200px 1fr; gap: 15px; background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; }
+        .info-grid dt { color: var(--text-muted); font-weight: 600; }
+        .info-grid dd { margin: 0; font-weight: 400; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 768px) { .filter-grid, .info-grid { grid-template-columns: 1fr; } }
+
+        #loader-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--background-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--border-color);
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* Alinhamento dos botões à direita */
+.btn-group { 
+    display: flex; 
+    gap: 10px; 
+    margin-bottom: 15px; 
+    justify-content: flex-end; /* Alinhado à direita */
+}
+
+/* Container das ações da agenda */
+.agenda-actions-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 15px;
+    align-items: flex-start; /* Alinha pelo topo para o badge crescer para baixo */
+    background: var(--card-color);
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary-color);
+    margin-top: 25px;
+    margin-bottom: 50px; /* Espaço extra no fundo para o dropdown respirar */
+}
+
+/* Padronização de altura para inputs e botões */
+.agenda-actions-grid .custom-input, 
+.agenda-actions-grid .btn-primary {
+    height: 45px; /* Altura idêntica para todos */
+    margin: 0;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+}
+
+.agenda-actions-grid .btn-primary {
+    justify-content: center;
+    width: 100%;
+}
+
+/* Ajuste do badge "Apenas eu" para não deslocar o layout */
+.selected-badge {
+    position: absolute;
+    bottom: -22px; /* Joga o texto para baixo da caixa */
+    left: 0;
+    font-size: 0.8em;
+    white-space: nowrap;
+}
+
+.search-select-container {
+    position: relative; /* Necessário para o posicionamento absoluto do badge */
+}
+
+/* Ajuste de responsividade */
+@media (max-width: 768px) {
+    .agenda-actions-grid {
+        grid-template-columns: 1fr; /* Empilha em ecrãs pequenos */
+        gap: 25px;
+    }
+    .selected-badge {
+        position: static; /* Volta ao normal no telemóvel */
+        margin-top: 5px;
+    }
+}
+
+/* Ajuste no grupo de botões para separar o filtro da esquerda dos botões da direita */
+.btn-group { 
+    display: flex; 
+    gap: 10px; 
+    margin-bottom: 15px; 
+    justify-content: space-between; /* Espaça os elementos */
+    align-items: center;
+}
+
+.right-btns {
+    display: flex;
+    gap: 10px;
+}
+
+/* Estilo para quando o filtro "há mais tempo" está ativo */
+.btn-secondary.active-filter {
+    background: var(--yellow-accent);
+    color: #000;
+    border-color: var(--yellow-accent);
+}
+
     </style>
 </head>
 <body>
 
-    <div id="loader-overlay">
+   <div id="loader-overlay">
         <div class="spinner"></div>
-        <p style="margin-top:15px">A carregar o seu perfil...</p>
+        <p id="loader-text">A verificar a sua sessão...</p>
     </div>
 
     <div class="container" id="main-container">
-        <!-- Conteúdo via JS -->
+        <!-- O conteúdo será injetado aqui -->
     </div>
-
     <div id="bottom-menu-placeholder"></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, doc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, doc, getDoc, query, where, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
@@ -98,164 +290,380 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    const mainContainer = document.getElementById('main-container');
+    let selectedMedicosIds = new Set();
+    let selectedEspIds = new Set();
+    let selectedShareIds = new Set();
+    let allMembrosCache = [];
+    let especialidadesCache = [];
+    let mapsCache = {};
 
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            try {
-                // Localizar o documento do membro pelo e-mail autenticado
-                const q = query(collection(db, "membrosclh"), where("emails", "array-contains", user.email));
-                const snap = await getDocs(q);
-
-                if (snap.empty) {
-                    mainContainer.innerHTML = "<div class='error'>Perfil não encontrado para o e-mail: " + user.email + "</div>";
-                } else {
-                    const memberId = snap.docs[0].id;
-                    await loadMyProfile(memberId);
-                }
-            } catch (e) {
-                console.error(e);
-                mainContainer.innerHTML = "<div class='error'>Erro ao carregar os dados.</div>";
-            } finally {
-                document.getElementById('loader-overlay').classList.add('hidden');
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        try {
+            // Enquanto carrega, garantimos que o container está limpo
+            document.getElementById('main-container').innerHTML = ""; 
+            
+            const q = query(collection(db, "membrosclh"), where("emails", "array-contains", user.email));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                await loadMyProfile(snap.docs[0].id);
+            } else {
+                document.getElementById('main-container').innerHTML = "<p style='text-align:center; padding:50px;'>Perfil não encontrado.</p>";
             }
-        } else {
-            window.location.href = 'index.html';
+        } catch (e) { 
+            console.error(e); 
+        } finally { 
+            // SÓ AQUI o loader desaparece
+            document.getElementById('loader-overlay').style.display = 'none'; 
         }
+    } else { 
+        window.location.href = 'index.html'; 
+    }
+});
+
+async function loadMyProfile(memberId) {
+    const [
+        memberSnap, 
+        congregacoesSnap, 
+        atuacoesSnap, 
+        medicosSnap, 
+        todosHospitaisSnap, // Alterado aqui de hospitaisRelSnap para todosHospitaisSnap
+        todosMembrosSnap, 
+        todasEspSnap
+    ] = await Promise.all([
+        getDoc(doc(db, "membrosclh", memberId)),
+        getDocs(collection(db, "congregacoes")), 
+        getDocs(collection(db, "atuacoes")),
+        getDocs(collection(db, "medicos")),
+        getDocs(collection(db, "hospitais")), // Agora descarrega TODOS os hospitais
+        getDocs(collection(db, "membrosclh")),
+        getDocs(collection(db, "especialidade"))
+    ]);
+
+    const data = memberSnap.data();
+    allMembrosCache = todosMembrosSnap.docs.map(d => ({id: d.id, nome: d.data().nome}));
+    especialidadesCache = todasEspSnap.docs.map(d => ({id: d.id, nome: d.data().nome}));
+
+    // Criamos a lista completa uma vez para usar nos mapas
+    const allHospitaisList = todosHospitaisSnap.docs.map(d => ({id: d.id, ...d.data()}));
+
+    mapsCache = {
+        congregacoes: new Map(congregacoesSnap.docs.map(d => [d.id, d.data().nome])),
+        atuacoes: new Map(atuacoesSnap.docs.map(d => [d.id, d.data()])),
+        medicos: new Map(medicosSnap.docs.map(d => [d.id, d.data()])),
+        
+        // Filtramos aqui os hospitais onde o membro é responsável para a aba "Meus Hospitais"
+        meusHospitais: allHospitaisList.filter(h => h.responsavel_ids?.includes(memberId)),
+        
+        // Lista completa ordenada para o filtro da Agenda
+        todosHospitais: allHospitaisList.sort((a, b) => (a.nome || "").localeCompare(b.nome || "")),
+        
+        allMedicosList: medicosSnap.docs.map(d => ({id: d.id, ...d.data()}))
+    };
+
+    renderPage(data, mapsCache, memberId);
+    setupTabs();
+    setupAgendaLogic(memberId);
+}
+
+  function renderPage(data, maps, memberId) {
+    const na = 'N/A';
+    const congregacao = maps.congregacoes.get(data.congregacao_id) || na;
+
+    document.getElementById('main-container').innerHTML = `
+        <!-- Cabeçalho do Perfil -->
+        <div class="profile-header">
+            <img src="${data.foto_url || 'https://via.placeholder.com/110'}" class="profile-picture">
+            <div class="profile-info">
+                <h1>${data.nome || na}</h1>
+                <p><i class="fas fa-church"></i> ${congregacao} • ${data.grupos?.[0]?.tipo || 'Membro'}</p>
+                <a href="master.html?edit=membro_acao&id=${memberId}" class="btn-secondary" style="text-decoration:none; margin-top:10px; display:inline-block;">
+                    <i class="fas fa-edit"></i> Editar Perfil
+                </a>
+            </div>
+        </div>
+
+        <!-- Navegação por Abas (Agenda Ativa por defeito) -->
+        <div class="tabs-container">
+            <button class="tab-button active" data-tab="agenda">Agenda</button>
+            <button class="tab-button" data-tab="info">Meus Dados</button>
+            <button class="tab-button" data-tab="atividade">Atividade</button>
+            <button class="tab-button" data-tab="hospitais">Hospitais</button>
+            <button class="tab-button" data-tab="medicos">Médicos</button>
+        </div>
+
+        <!-- CONTEÚDO: AGENDA (Ativo por defeito) -->
+        <div class="tab-content active" id="agenda">
+            <div class="sub-tabs">
+                <button class="sub-tab-button active" data-subtab="prep-trabalho">Preparar Trabalho</button>
+                <button class="sub-tab-button" data-subtab="anotacoes">Anotações</button>
+            </div>
+
+            <div id="prep-trabalho" class="sub-tab-content">
+                <!-- Filtros Superiores -->
+                <div class="agenda-card">
+                    <div class="filter-grid">
+                        <div class="form-group">
+                            <label>Hospital</label>
+                       <select id="agenda-hospital-filter" class="custom-input">
+    <option value="todos">Todos os Hospitais</option>
+    ${maps.todosHospitais.map(h => `<option value="${h.id}">${h.nome}</option>`).join('')}
+</select>
+                        </div>
+                        <div class="form-group search-select-container">
+                            <label>Especialidades</label>
+                            <input type="text" id="esp-search" class="custom-input" placeholder="Pesquisar Especialidade..." disabled>
+                            <span id="esp-count" class="selected-badge"><i class="fas fa-tags"></i> 0 selecionadas</span>
+                            <div id="esp-dropdown" class="search-select-dropdown"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grupo de Botões (Filtro à esquerda, Ações à direita) -->
+                <div class="btn-group">
+                    <button id="btn-sort-oldest" class="btn-secondary">
+                        <i class="fas fa-hourglass-half"></i> Contatados há mais tempo
+                    </button>
+                    
+                    <div class="right-btns">
+                        <button id="btn-marcar-tudo" class="btn-secondary">
+                            <i class="fas fa-check-square"></i> Marcar Tudo
+                        </button>
+                        <button id="btn-desmarcar-tudo" class="btn-secondary">
+                            <i class="fas fa-minus-square"></i> Desmarcar Tudo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lista de Médicos (Preenchida via JS) -->
+                <div id="agenda-medicos-lista" class="medico-list">
+                     <p style="text-align:center; padding:40px; color:var(--text-muted);">Selecione um Hospital para listar os médicos.</p>
+                </div>
+
+                <!-- Ações de Envio -->
+                <div class="agenda-actions-grid">
+                    <div class="form-group search-select-container">
+                        <label>Partilhar com</label>
+                        <input type="text" id="share-search" class="custom-input" placeholder="Pesquisar Membro...">
+                        <span id="share-count" class="selected-badge"><i class="fas fa-user-friends"></i> Apenas eu</span>
+                        <div id="share-dropdown" class="search-select-dropdown"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Data da Visita</label>
+                        <input type="date" id="agenda-data" class="custom-input">
+                    </div>
+                    <button id="btn-enviar-agenda" class="btn-primary">
+                        <i class="fas fa-calendar-plus"></i> Enviar Agenda
+                    </button>
+                </div>
+            </div>
+
+            <div id="anotacoes" class="sub-tab-content" style="display:none; padding:60px; text-align:center; color:var(--text-muted);">
+               <i class="fas fa-tools fa-3x"></i><br><br>Funcionalidade de Anotações em desenvolvimento.
+            </div>
+        </div>
+
+        <!-- CONTEÚDO: MEUS DADOS -->
+        <div class="tab-content" id="info">
+            <div class="info-section">
+                <h3><i class="fas fa-address-card"></i> Contacto</h3>
+                <dl class="info-grid">
+                    <dt>Nome Completo</dt><dd>${data.nome_completo || na}</dd>
+                    <dt>E-mails</dt><dd>${data.emails?.join('<br>') || na}</dd>
+                    <dt>Telemóveis</dt><dd>${data.telemoveis?.join(', ') || na}</dd>
+                    <dt>Morada</dt><dd>${data.morada || na}</dd>
+                </dl>
+            </div>
+            <div class="info-section">
+                <h3><i class="fas fa-id-badge"></i> Estado na Organização</h3>
+                <dl class="info-grid">
+                    <dt>Congregação</dt><dd>${congregacao}</dd>
+                    <dt>Cartão AER</dt><dd>${data.cartao_aer || 'Não'}</dd>
+                    <dt>Ativo</dt><dd>${data.ativo ? 'Sim' : 'Não'}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- CONTEÚDO: ATIVIDADE -->
+        <div class="tab-content" id="atividade">
+            ${renderAtividades(data.atuacoes_ids, maps.atuacoes)}
+        </div>
+
+        <!-- CONTEÚDO: HOSPITAIS -->
+        <div class="tab-content" id="hospitais">
+            ${renderHospitais(maps.meusHospitais)}
+        </div>
+
+        <!-- CONTEÚDO: MÉDICOS -->
+        <div class="tab-content" id="medicos">
+            ${renderMedicos(data.medicos_responsabilidade_ids, maps.medicos)}
+        </div>
+    `;
+}
+
+    // Lógica da Agenda
+    function setupAgendaLogic(currentUserId) {
+    const hospSelect = document.getElementById('agenda-hospital-filter');
+    const espSearch = document.getElementById('esp-search');
+    const espDropdown = document.getElementById('esp-dropdown');
+    const shareSearch = document.getElementById('share-search');
+    const shareDropdown = document.getElementById('share-dropdown');
+    
+    let sortByOldest = false; // Estado do novo filtro
+
+    const handleSearchDropdown = (input, dropdown, data, selectedSet, countEl, type) => {
+        if(!input) return;
+        input.addEventListener('focus', () => dropdown.classList.add('show'));
+        document.addEventListener('click', (e) => { if (!input.parentElement.contains(e.target)) dropdown.classList.remove('show'); });
+
+        const render = (filter = "") => {
+            const filtered = data.filter(item => item.nome.toLowerCase().includes(filter.toLowerCase()));
+            dropdown.innerHTML = filtered.map(item => `
+                <div class="search-option">
+                    <input type="checkbox" value="${item.id}" ${selectedSet.has(item.id) ? 'checked' : ''}>
+                    <span>${item.nome}</span>
+                </div>
+            `).join('');
+            
+            dropdown.querySelectorAll('.search-option').forEach(opt => {
+                opt.onclick = (e) => {
+                    const ck = opt.querySelector('input');
+                    if (e.target !== ck) ck.checked = !ck.checked;
+                    ck.checked ? selectedSet.add(ck.value) : selectedSet.delete(ck.value);
+                    countEl.innerHTML = selectedSet.size > 0 ? `<i class="fas fa-check"></i> ${selectedSet.size} selecionados` : (type === 'share' ? '<i class="fas fa-user-friends"></i> Apenas eu' : '<i class="fas fa-tags"></i> 0 selecionadas');
+                    if (type === 'esp') updateMedicosLista();
+                };
+            });
+        };
+        input.addEventListener('input', (e) => render(e.target.value));
+        render();
+    };
+
+    handleSearchDropdown(shareSearch, shareDropdown, allMembrosCache.filter(m => m.id !== currentUserId), selectedShareIds, document.getElementById('share-count'), 'share');
+
+    hospSelect?.addEventListener('change', () => {
+        const hospId = hospSelect.value;
+        espSearch.disabled = false;
+        const medicosNoHosp = mapsCache.allMedicosList.filter(m => hospId === 'todos' ? true : m.posicoes?.some(p => p.hospital_id === hospId));
+        const espNoHospIds = [...new Set(medicosNoHosp.flatMap(m => m.especialidade_ids || []))];
+        const espNoHosp = especialidadesCache.filter(e => espNoHospIds.includes(e.id));
+        handleSearchDropdown(espSearch, espDropdown, espNoHosp, selectedEspIds, document.getElementById('esp-count'), 'esp');
+        updateMedicosLista();
     });
 
-    async function loadMyProfile(memberId) {
-        // Carregamento de dados paralelos
-        const [memberSnap, congregacoesSnap, atuacoesSnap, medicosSnap, hospitaisRelacionadosSnap] = await Promise.all([
-            getDoc(doc(db, "membrosclh", memberId)),
-            getDocs(collection(db, "congregacoes")), 
-            getDocs(collection(db, "atuacoes")),
-            getDocs(collection(db, "medicos")),
-            // Busca hospitais onde o campo responsavel_ids contém este ID de membro
-            getDocs(query(collection(db, "hospitais"), where("responsavel_ids", "array-contains", memberId)))
-        ]);
+    // Função de listagem com Ordenação por últimaVisita
+    function updateMedicosLista() {
+        const hospId = hospSelect.value;
+        let filtered = mapsCache.allMedicosList.filter(m => {
+            const isAtivo = m.ativo === true || m.ativo === "sim"; 
+            const matchHosp = hospId === 'todos' ? true : m.posicoes?.some(p => p.hospital_id === hospId);
+            const matchEsp = selectedEspIds.size === 0 ? true : m.especialidade_ids?.some(e => selectedEspIds.has(e));
+            return isAtivo && matchHosp && matchEsp;
+        });
 
-        const data = memberSnap.data();
-        const maps = {
-            congregacoes: new Map(congregacoesSnap.docs.map(d => [d.id, d.data().nome])),
-            atuacoes: new Map(atuacoesSnap.docs.map(d => [d.id, d.data()])),
-            medicos: new Map(medicosSnap.docs.map(d => [d.id, d.data()])),
-            meusHospitais: hospitaisRelacionadosSnap.docs.map(d => ({id: d.id, ...d.data()}))
-        };
+        // APLICA ORDENAÇÃO SE O FILTRO ESTIVER ATIVO
+        if (sortByOldest) {
+            filtered.sort((a, b) => {
+                // Médicos sem data (nunca visitados) aparecem primeiro ("0000-00-00")
+                const dateA = a.ultimaVisita || "0000-00-00";
+                const dateB = b.ultimaVisita || "0000-00-00";
+                return dateA.localeCompare(dateB);
+            });
+        }
 
-        renderPage(data, maps, memberId);
-        setupTabs();
-    }
-
-    function renderPage(data, maps, memberId) {
-        const na = 'N/A';
-        const congregacao = maps.congregacoes.get(data.congregacao_id) || na;
-        const foto = data.foto_url || 'https://via.placeholder.com/100/495057/dee2e6?text=Foto';
-
-        mainContainer.innerHTML = `
-            <div class="profile-header">
-                <img src="${foto}" class="profile-picture">
-                <div class="profile-info">
-                    <h1>${data.nome || na}</h1>
-                    <h2>${congregacao} • ${data.grupos?.[0]?.tipo || 'Membro'}</h2>
-                    <a href="master.html?edit=membro_acao&id=${memberId}" class="btn-action">Editar Perfil</a>
-                </div>
-            </div>
-
-            <div class="tabs-container">
-                <button class="tab-button active" data-tab="info">Meus Dados</button>
-                <button class="tab-button" data-tab="atividade">Atividade</button>
-                <button class="tab-button" data-tab="hospitais">Meus Hospitais</button>
-                <button class="tab-button" data-tab="medicos">Meus Médicos</button>
-            </div>
-
-            <!-- TAB: DADOS (Conforme solicitado) -->
-            <div class="tab-content active" id="info">
-                <div class="info-section">
-                    <h3>Informações de Contacto</h3>
-                    <dl class="info-grid">
-                        <dt>Nome Completo</dt><dd>${data.nome_completo || na}</dd>
-                        <dt>E-mails</dt><dd>${data.emails?.join('<br>') || na}</dd>
-                        <dt>Telemóveis</dt><dd>${data.telemoveis?.join(', ') || na}</dd>
-                        <dt>Morada</dt><dd>${data.morada || na}</dd>
-                    </dl>
-                </div>
-                <div class="info-section">
-                    <h3>Estado na Organização</h3>
-                    <dl class="info-grid">
-                        <dt>Congregação</dt><dd>${congregacao}</dd>
-                        <dt>Cartão AER</dt><dd>${data.cartao_aer || 'Não possui'}</dd>
-                        <dt>Ativo</dt><dd>${data.ativo ? 'Sim' : 'Não'}</dd>
-                    </dl>
-                </div>
-            </div>
-
-            <!-- TAB: HOSPITAIS -->
-            <div class="tab-content" id="hospitais">
-                ${renderHospitais(maps.meusHospitais)}
-            </div>
-
-            <!-- TAB: MÉDICOS -->
-            <div class="tab-content" id="medicos">
-                ${renderMedicos(data.medicos_responsabilidade_ids, maps.medicos)}
-            </div>
-
-            <!-- TAB: ATIVIDADE -->
-            <div class="tab-content" id="atividade">
-                ${renderAtividades(data.atuacoes_ids, maps.atuacoes)}
-            </div>
-        `;
-    }
-
-    function renderHospitais(hospitais) {
-        if (hospitais.length === 0) return "<p>Não existem hospitais associados à sua responsabilidade.</p>";
-        let rows = hospitais.map(h => `
-            <tr>
-                <td><b>${h.sigla || ''}</b> - ${h.nome}</td>
-                <td>${h.cidade || 'N/A'}</td>
-                <td><a href="hospital.html?id=${h.id}" class="btn-action">Ver Unidade</a></td>
-            </tr>
-        `).join('');
-        return `<table><thead><tr><th>Hospital</th><th>Cidade</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table>`;
-    }
-
-    function renderMedicos(ids, map) {
-        if (!ids || ids.length === 0) return "<p>Sem médicos atribuídos.</p>";
-        let rows = ids.map(id => {
-            const m = map.get(id);
-            return m ? `<tr><td>${m.nome}</td><td><a href="medico.html?id=${id}" class="btn-action">Ver Ficha</a></td></tr>` : '';
-        }).join('');
-        return `<table><thead><tr><th>Médico</th><th>Ação</th></tr></thead><tbody>${rows}</tbody></table>`;
-    }
-
-    function renderAtividades(ids, map) {
-        if (!ids || ids.length === 0) return "<p>Nenhuma atividade registada.</p>";
-        return ids.slice(0, 10).map(id => {
-            const item = map.get(id);
-            if (!item) return '';
+        const sticky = mapsCache.allMedicosList.filter(m => selectedMedicosIds.has(m.id));
+        const final = [...new Map([...filtered, ...sticky].map(m => [m.id, m])).values()];
+        const lista = document.getElementById('agenda-medicos-lista');
+        
+        lista.innerHTML = final.length ? final.map(m => {
+            const dataVisita = m.ultimaVisita ? new Date(m.ultimaVisita).toLocaleDateString('pt-PT') : 'Nunca';
             return `
-                <div class="atividade-item">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                        <span style="font-weight:bold">${item.tipo}</span>
-                        <span style="color:var(--text-color-muted); font-size:0.8em">${new Date(item.data).toLocaleDateString()}</span>
+                <div class="medico-row">
+                    <input type="checkbox" class="medico-select-check" value="${m.id}" ${selectedMedicosIds.has(m.id) ? 'checked' : ''}>
+                    <div style="flex-grow:1">
+                        <b>${m.nome}</b><br>
+                        <small style="color:var(--text-muted)">${m.cooperador_situacao || 'S/ Info'}</small>
                     </div>
-                    <p style="margin:0; font-size:0.95em">${item.observacoes || item.descricao || ''}</p>
-                </div>`;
-        }).join('');
+                    <div style="text-align:right">
+                        <small style="color:var(--text-muted); font-size: 0.75em;">Última Visita:</small><br>
+                        <span style="font-size: 0.85em; color: ${m.ultimaVisita ? 'var(--text-color)' : 'var(--yellow-accent)'}">${dataVisita}</span>
+                    </div>
+                </div>
+            `;
+        }).join('') : '<p style="text-align:center; padding:30px; color:var(--text-muted)">Nenhum médico encontrado com estes filtros.</p>';
+
+        lista.querySelectorAll('.medico-select-check').forEach(ck => {
+            ck.onchange = () => ck.checked ? selectedMedicosIds.add(ck.value) : selectedMedicosIds.delete(ck.value);
+        });
     }
 
+    // Lógica do botão de Ordenação
+    document.getElementById('btn-sort-oldest').onclick = (e) => {
+        sortByOldest = !sortByOldest;
+        const btn = document.getElementById('btn-sort-oldest');
+        btn.classList.toggle('active-filter');
+        updateMedicosLista();
+    };
+
+    document.getElementById('btn-marcar-tudo').onclick = () => {
+        document.querySelectorAll('.medico-select-check').forEach(ck => { ck.checked = true; selectedMedicosIds.add(ck.value); });
+    };
+    document.getElementById('btn-desmarcar-tudo').onclick = () => {
+        document.querySelectorAll('.medico-select-check').forEach(ck => { ck.checked = false; selectedMedicosIds.delete(ck.value); });
+    };
+
+    document.getElementById('btn-enviar-agenda').onclick = async () => {
+        const date = document.getElementById('agenda-data').value;
+        if (selectedMedicosIds.size === 0 || !date) return alert("Por favor, selecione médicos e uma data.");
+        try {
+            await addDoc(collection(db, "agenda"), {
+                medico_ids: [...selectedMedicosIds],
+                participantes_ids: [currentUserId, ...selectedShareIds],
+                data_agendada: date,
+                timestamp: new Date()
+            });
+            alert("Agenda enviada com sucesso!");
+            location.reload();
+        } catch (e) { alert("Erro ao enviar para o servidor."); }
+    };
+
+    document.querySelectorAll('.sub-tab-button').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.sub-tab-button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.sub-tab-content').forEach(c => c.style.display = 'none');
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.subtab).style.display = 'block';
+        };
+    });
+}
+
+      
+
+    // Auxiliares de Render
+    function renderAtividades(ids, map) {
+        if (!ids?.length) return "<p style='padding:20px; color:var(--text-muted);'>Nenhuma atividade recente registada.</p>";
+        return ids.slice(0,10).map(id => {
+            const it = map.get(id);
+            return it ? `<div style="background:var(--card-color); padding:15px; margin-bottom:10px; border-radius:8px; border-left:4px solid var(--primary-color)"><b>${it.tipo}</b> <span style="color:var(--text-muted); font-size:0.8em;">- ${it.data}</span><br><p style="margin:5px 0 0; font-size:0.9em;">${it.observacoes || ''}</p></div>` : '';
+        }).join('');
+    }
+    function renderHospitais(h) {
+        return h.length ? `<table><thead><tr><th>Hospital</th><th>Cidade</th></tr></thead><tbody>${h.map(x => `<tr><td><b>${x.sigla || ''}</b> ${x.nome}</td><td>${x.cidade || ''}</td></tr>`).join('')}</tbody></table>` : '<p style="padding:20px; color:var(--text-muted);">Sem hospitais atribuídos.</p>';
+    }
+    function renderMedicos(ids, map) {
+        return ids?.length ? `<table><thead><tr><th>Nome do Médico</th></tr></thead><tbody>${ids.map(id => `<tr><td>${map.get(id)?.nome || ''}</td></tr>`).join('')}</tbody></table>` : '<p style="padding:20px; color:var(--text-muted);">Sem médicos atribuídos.</p>';
+    }
     function setupTabs() {
         document.querySelectorAll('.tab-button').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.onclick = () => {
                 document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 btn.classList.add('active');
                 document.getElementById(btn.dataset.tab).classList.add('active');
-            });
+            };
         });
     }
 </script>
-
 <script src="menu-loader.js"></script>
 </body>
 </html>
