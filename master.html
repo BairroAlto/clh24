@@ -339,6 +339,8 @@
     position: relative;
 }
 
+
+
 </style>
 
 </head>
@@ -516,20 +518,27 @@
         <div class="form-group"><label for="d-cedula">Cédula (Opcional)</label><input type="text" id="d-cedula"></div>
     </div>
     
-    <div class="form-row cols-2" style="margin-top: 20px;">
-        <div class="form-group">
-            <label for="d-imagem-link">Imagem (URL, Opcional)</label>
-            <input type="url" id="d-imagem-link">
-        </div>
-        <div class="form-group">
-            <label for="d-genero">Género</label>
-            <select id="d-genero">
-                <option value="" selected>Selecione...</option>
-                <option value="masculino">Masculino</option>
-                <option value="feminino">Feminino</option>
-            </select>
-        </div>
+<div class="form-row cols-3" style="margin-top: 20px;">
+    <div class="form-group">
+        <label for="d-imagem-link">Imagem (URL, Opcional)</label>
+        <input type="url" id="d-imagem-link">
     </div>
+    <div class="form-group">
+        <label for="d-genero">Género</label>
+        <select id="d-genero">
+            <option value="" selected>Selecione...</option>
+            <option value="masculino">Masculino</option>
+            <option value="feminino">Feminino</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="d-ativo">Ativo?</label>
+        <select id="d-ativo">
+            <option value="sim" selected>Sim</option>
+            <option value="nao">Não</option>
+        </select>
+    </div>
+</div>
 
     <div class="form-row cols-2" style="margin-top: 20px;">
         <div class="form-group">
@@ -716,7 +725,15 @@
                     <select id="atuacao-fechado"><option value="nao" selected>Não</option><option value="sim">Sim</option></select>
                 </div>
             </fieldset>
-            <div class="form-actions"><button type="submit" class="btn btn-submit">Guardar Atuação</button><button type="button" id="btn-cancel-atuacao" class="btn btn-cancel hidden">Cancelar Edição</button></div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-submit">Guardar Atuação</button>
+             <button type="button" id="btn-edit-anotacao" class="btn btn-add hidden" style="background-color: var(--yellow-accent); color: #000;">Gravar Alterações na Anotação</button>
+<button type="button" id="btn-convert-anotacao" class="btn btn-submit hidden" style="background-color: var(--green-accent);">Tornar Atuação</button>
+
+    <button type="button" id="btn-cancel-atuacao" class="btn btn-cancel hidden">Cancelar Edição</button>
+</div>
+            
+            </div>
         </form>
     </div>
 
@@ -839,8 +856,7 @@
 <script type="module">
 // --- IMPORTS E CONFIGURAÇÃO FIREBASE ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, query, where, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, query, where, arrayUnion, arrayRemove, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBPT8jKrdXIs5Hupd13BwBwd4GxaWQrNdM",
@@ -853,6 +869,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+let currentMemberId = ""; let selectedMedicoId = "";
 
 // --- VARIÁVEIS GLOBAIS ---
 let currentEditId = null;
@@ -1422,6 +1439,7 @@ async function loadAndPopulateMedicoForm(medicoId) {
         document.getElementById('d-cedula').value = data.cedula || '';
         document.getElementById('d-imagem-link').value = data.imagem_url || '';
         document.getElementById('d-genero').value = data.genero || '';
+        document.getElementById('d-ativo').value = data.ativo !== false ? 'sim' : 'nao';
         document.getElementById('d-situacao-coop').value = data.situacao_coop || data.cooperador_situacao || ''; // Suporte a ambos os nomes de campo
         document.getElementById('d-classificacao').value = data.classificacao || '';
         document.getElementById('d-mailings').value = data.recebe_mailings_dih ? 'sim' : 'nao';
@@ -1804,6 +1822,7 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
         cedula: document.getElementById('d-cedula').value.trim(),
         imagem_url: document.getElementById('d-imagem-link').value.trim(),
         genero: document.getElementById('d-genero').value,
+         ativo: document.getElementById('d-ativo').value === 'sim',
         cooperador_situacao: document.getElementById('d-situacao-coop').value,
         classificacao: document.getElementById('d-classificacao').value.trim(),
         recebe_mailings_dih: document.getElementById('d-mailings').value === 'sim',
@@ -1908,48 +1927,96 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
 });
 
             // Handlers simples para Atuações, Leads e Pedidos
-            document.getElementById('form-atuacao')?.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const editId = e.target.dataset.editId;
-                const newMedIds = document.getElementById('atuacao-medicos-container').getSelectedIds();
-                const newMemIds = document.getElementById('atuacao-membros-container').getSelectedIds();
-                const newPacIds = document.getElementById('atuacao-pacientes-container').getSelectedIds();
-            const atuData = {
-    membro_ids: newMemIds, 
-    medico_ids: newMedIds, 
-    paciente_ids: newPacIds,
-    ordem: document.getElementById('atuacao-ordem').value, 
-    tipo: document.getElementById('atuacao-tipo').value,
-    data: document.getElementById('atuacao-data').value, 
-    quantidade: document.getElementById('atuacao-quantidade').value,
-    observacoes: document.getElementById('atuacao-obs').value,
-     observacoes_medico: document.getElementById('atuacao-obs-medico').value,
-    fechado: document.getElementById('atuacao-fechado').value === 'sim',
-    documento: document.getElementById('atuacao-documento').value,
-    novo_contato: document.getElementById('atuacao-novo-contato').value
-};
-                try {
-                    if (editId) {
-                        const atuRef = doc(db, 'atuacoes', editId);
-                        const docBefore = await getDoc(atuRef);
-                        await updateDoc(atuRef, atuData);
-                        await syncAssociations(editId, docBefore.data().medico_ids || [], newMedIds, 'medicos', 'atuacoes_ids');
-                        await syncAssociations(editId, docBefore.data().membro_ids || [], newMemIds, 'membrosclh', 'atuacoes_ids');
-                        await syncAssociations(editId, docBefore.data().paciente_ids || [], newPacIds, 'pacientes', 'atuacoes_ids');
-                        alert('Atuação atualizada!');
-                        location.reload();
-                    } else {
-                        atuData.criado_em = new Date();
-                        const docRef = await addDoc(collection(db, 'atuacoes'), atuData);
-                        await syncAssociations(docRef.id, [], newMedIds, 'medicos', 'atuacoes_ids');
-                        await syncAssociations(docRef.id, [], newMemIds, 'membrosclh', 'atuacoes_ids');
-                        await syncAssociations(docRef.id, [], newPacIds, 'pacientes', 'atuacoes_ids');
-                        alert('Atuação guardada!');
-                        resetAtuacaoForm();
-                        if (currentEditId) await initializeActionEditor(currentEditId, currentEditType.includes('medico') ? 'medico' : 'membro');
+document.getElementById('form-atuacao')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const editId = form.dataset.editId;
+    
+    // 1. Capturar os IDs e a Data
+    const newMedIds = document.getElementById('atuacao-medicos-container').getSelectedIds();
+    const newMemIds = document.getElementById('atuacao-membros-container').getSelectedIds();
+    const newPacIds = document.getElementById('atuacao-pacientes-container').getSelectedIds();
+    const dataAtuacao = document.getElementById('atuacao-data').value;
+
+    const atuData = {
+        membro_ids: newMemIds,
+        medico_ids: newMedIds,
+        paciente_ids: newPacIds,
+        ordem: document.getElementById('atuacao-ordem').value,
+        tipo: document.getElementById('atuacao-tipo').value,
+        data: dataAtuacao,
+        quantidade: document.getElementById('atuacao-quantidade').value,
+        observacoes: document.getElementById('atuacao-obs').value,
+        observacoes_medico: document.getElementById('atuacao-obs-medico').value,
+        fechado: document.getElementById('atuacao-fechado').value === 'sim',
+        documento: document.getElementById('atuacao-documento').value,
+        novo_contato: document.getElementById('atuacao-novo-contato').value
+    };
+
+    try {
+        let actionId = editId;
+
+        if (editId) {
+            // --- MODO EDIÇÃO ---
+            const atuRef = doc(db, 'atuacoes', editId);
+            const docBefore = await getDoc(atuRef);
+            const oldData = docBefore.data();
+
+            await updateDoc(atuRef, atuData);
+
+            await Promise.all([
+                syncAssociations(editId, oldData.medico_ids || [], newMedIds, 'medicos', 'atuacoes_ids'),
+                syncAssociations(editId, oldData.membro_ids || [], newMemIds, 'membrosclh', 'atuacoes_ids'),
+                syncAssociations(editId, oldData.paciente_ids || [], newPacIds, 'pacientes', 'atuacoes_ids')
+            ]);
+        } else {
+            // --- MODO CRIAÇÃO ---
+            atuData.criado_em = new Date();
+            const docRef = await addDoc(collection(db, 'atuacoes'), atuData);
+            actionId = docRef.id;
+
+            await Promise.all([
+                syncAssociations(actionId, [], newMedIds, 'medicos', 'atuacoes_ids'),
+                syncAssociations(actionId, [], newMemIds, 'membrosclh', 'atuacoes_ids'),
+                syncAssociations(actionId, [], newPacIds, 'pacientes', 'atuacoes_ids')
+            ]);
+        }
+
+        // --- NOVO: ATUALIZAR CAMPO "ultimaVisita" NOS MÉDICOS ---
+        if (newMedIds.length > 0 && dataAtuacao) {
+            const updateMedicosPromises = newMedIds.map(async (medId) => {
+                const medRef = doc(db, 'medicos', medId);
+                const medSnap = await getDoc(medRef);
+                
+                if (medSnap.exists()) {
+                    const currentUltima = medSnap.data().ultimaVisita;
+                    // Opcional: Só atualiza se a data da atuação for mais recente que a já registada
+                    if (!currentUltima || dataAtuacao >= currentUltima) {
+                        await updateDoc(medRef, {
+                            ultimaVisita: dataAtuacao
+                        });
                     }
-                } catch (err) { console.error(err); }
+                }
             });
+            await Promise.all(updateMedicosPromises);
+        }
+
+        alert('Atuação guardada e data de última visita atualizada no(s) médico(s)!');
+        
+        // Reset e UI
+        resetAtuacaoForm();
+        if (currentEditId) {
+            await initializeActionEditor(currentEditId, currentEditType.includes('medico') ? 'medico' : 'membro');
+        } else {
+            location.reload();
+        }
+
+    } catch (err) {
+        console.error("Erro ao guardar atuação:", err);
+        alert('Erro ao guardar a atuação.');
+    }
+});
+             
 
             // 2. CARREGAR DADOS DA FIREBASE (CACHE)
             [hospitaisCache, servicosCache, especialidadesCache, membrosCache, clhCache, congregacoesCache, medicosCache, pacientesCache] = await Promise.all([
@@ -1962,6 +2029,113 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
                 populateMedicosCache(),
                 populateDataCache('pacientes', 'nome')
             ]);
+
+    // --- LOGICA ÚNICA PARA CONVERSÃO DE ANOTAÇÃO ---
+            if (currentEditId && currentEditType === 'anotacao') {
+                // 1. Forçar a ida para a aba "Ação"
+                switchToTab('acao');
+                
+                // 2. Preparar botões do formulário de Atuação
+                const btnNormalSubmit = document.querySelector('#form-atuacao .btn-submit');
+                const btnEditNote = document.getElementById('btn-edit-anotacao');
+                const btnConvertNote = document.getElementById('btn-convert-anotacao');
+                const btnCancel = document.getElementById('btn-cancel-atuacao');
+
+                btnNormalSubmit.classList.add('hidden');
+                btnEditNote.classList.remove('hidden');
+                btnConvertNote.classList.remove('hidden');
+                btnCancel.classList.remove('hidden');
+
+                // 3. Carregar os dados do rascunho
+                const carregarRascunho = async () => {
+                    try {
+                        const noteSnap = await getDoc(doc(db, "anotacoes", currentEditId));
+                        if (noteSnap.exists()) {
+                            const data = noteSnap.data();
+                            const form = document.getElementById('form-atuacao');
+                            
+                            form.classList.remove('hidden');
+                            document.getElementById('btn-show-form-atuacao').classList.add('hidden');
+                            
+                            // Preencher o formulário oficial com os dados da nota
+                            document.getElementById('atuacao-medicos-container').setSelectedIds(data.medico_ids || []);
+                            document.getElementById('atuacao-membros-container').setSelectedIds(data.membro_ids || []);
+                            document.getElementById('atuacao-obs').value = data.observacoes || '';
+                            document.getElementById('atuacao-data').value = data.data || new Date().toISOString().split('T')[0];
+                            
+                            // Destaque visual
+                            document.getElementById('atuacao-obs').style.borderColor = "var(--yellow-accent)";
+                            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    } catch (error) { console.error("Erro ao carregar rascunho:", error); }
+                };
+                carregarRascunho();
+            }
+
+            // --- EVENTOS DOS BOTÕES DE ANOTAÇÃO ---
+            
+            // Botão: Apenas gravar alterações na anotação (sem converter)
+            document.getElementById('btn-edit-anotacao').addEventListener('click', async () => {
+                try {
+                    const noteRef = doc(db, "anotacoes", currentEditId);
+                    await updateDoc(noteRef, {
+                        observacoes: document.getElementById('atuacao-obs').value,
+                        medico_ids: document.getElementById('atuacao-medicos-container').getSelectedIds(),
+                        membro_ids: document.getElementById('atuacao-membros-container').getSelectedIds(),
+                        data: document.getElementById('atuacao-data').value
+                    });
+                    alert("Rascunho atualizado com sucesso!");
+                } catch (e) { alert("Erro ao atualizar rascunho."); }
+            });
+
+            // Botão: TORNAR ATUAÇÃO (Converter e Apagar rascunho)
+         document.getElementById('btn-convert-anotacao').addEventListener('click', async () => {
+                if (!confirm("Confirmar conversão? O rascunho será apagado e uma Atuação oficial será criada.")) return;
+
+                try {
+                    const medIds = document.getElementById('atuacao-medicos-container').getSelectedIds();
+                    const memIds = document.getElementById('atuacao-membros-container').getSelectedIds();
+                    const dataAtu = document.getElementById('atuacao-data').value;
+
+                    const novaAtu = {
+                        membro_ids: memIds,
+                        medico_ids: medIds,
+                        paciente_ids: [], 
+                        tipo: document.getElementById('atuacao-tipo').value || "Apresentação",
+                        data: dataAtu,
+                        observacoes: document.getElementById('atuacao-obs').value,
+                        criado_em: new Date(),
+                        fechado: document.getElementById('atuacao-fechado').value === 'sim'
+                    };
+
+                    // 1. Criar a Atuação
+                    const docRef = await addDoc(collection(db, "atuacoes"), novaAtu);
+                    const novaAtuId = docRef.id;
+
+                    // 2. IMPORTANTE: Sincronizar Associações (Liga a atuação ao histórico do médico e do membro)
+                    await Promise.all([
+                        syncAssociations(novaAtuId, [], medIds, 'medicos', 'atuacoes_ids'),
+                        syncAssociations(novaAtuId, [], memIds, 'membrosclh', 'atuacoes_ids')
+                    ]);
+
+                    // 3. Atualizar a "última visita" no Médico
+                    if (medIds.length > 0) {
+                        await updateDoc(doc(db, "medicos", medIds[0]), { ultimaVisita: dataAtu });
+                    }
+
+                    // 4. APAGAR o rascunho original
+                    await deleteDoc(doc(db, "anotacoes", currentEditId));
+
+                    alert("Conversão concluída com sucesso!");
+                    window.location.href = "master.html"; 
+
+                } catch (error) { 
+                    console.error(error);
+                    alert("Erro ao converter."); 
+                }
+            });
+
+              
 
             // 3. INICIALIZAR COMPONENTES DINÂMICOS
       const populateSelect = (selectId, data, prompt) => {
@@ -2010,24 +2184,66 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
     }
 
             // 5. LÓGICA DE ROTAS DE EDIÇÃO
-         const params = new URLSearchParams(window.location.search);
+  // 5. LÓGICA DE NAVEGAÇÃO E ROTAS (SUBSTITUIÇÃO COMPLETA)
+            const params = new URLSearchParams(window.location.search);
             currentEditType = params.get('edit');
             currentEditId = params.get('id');
-
             const container = document.querySelector('.container');
 
-            if (currentEditId) {
-                // --- MODO EDIÇÃO COM CONTEXTO ---
+         if (currentEditId) {
+                // --- MODO EDIÇÃO COM ID ---
+                
+                if (currentEditType === 'anotacao') {
+                    container?.classList.add('action-edit-mode');
+                    // Bloquear abas laterais
+                    const bloqueadas = ['hospitais', 'membros', 'medicos', 'servicos', 'clh', 'congregacoes', 'especialidades', 'pacientes'];
+                    bloqueadas.forEach(tab => document.querySelector(`.tab-link[data-tab="${tab}"]`)?.classList.add('locked'));
+                    
+                    setupActionUI(); // Prepara a interface de Ação
+                    switchToTab('acao');
 
-                if (currentEditType === 'medico_acao') {
+                    // Lógica específica para carregar o rascunho e abrir o formulário
+                    const carregarERevelarRascunho = async () => {
+                        try {
+                            const noteSnap = await getDoc(doc(db, "anotacoes", currentEditId));
+                            if (noteSnap.exists()) {
+                                const data = noteSnap.data();
+                                const form = document.getElementById('form-atuacao');
+                                
+                                // 1. Preencher campos
+                                document.getElementById('atuacao-medicos-container').setSelectedIds(data.medico_ids || []);
+                                document.getElementById('atuacao-membros-container').setSelectedIds(data.membro_ids || []);
+                                document.getElementById('atuacao-obs').value = data.observacoes || '';
+                                document.getElementById('atuacao-data').value = data.data || new Date().toISOString().split('T')[0];
+                                
+                                // 2. Mostrar o formulário e ajustar botões
+                                form.classList.remove('hidden');
+                                document.getElementById('btn-show-form-atuacao').classList.add('hidden');
+                                document.querySelector('#form-atuacao .btn-submit').classList.add('hidden');
+                                document.getElementById('btn-edit-anotacao').classList.remove('hidden');
+                                document.getElementById('btn-convert-anotacao').classList.remove('hidden');
+                                document.getElementById('btn-cancel-atuacao').classList.remove('hidden');
+
+                                // 3. Carregar o histórico do médico na barra lateral (se houver médico)
+                                if (data.medico_ids && data.medico_ids.length > 0) {
+                                    await initializeActionEditor(data.medico_ids[0], 'medico');
+                                } else {
+                                    await initializeActionEditor(); // Carrega tudo se não houver médico
+                                }
+
+                                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                        } catch (error) { console.error("Erro ao carregar anotação:", error); }
+                    };
+                    carregarERevelarRascunho();
+                } 
+                else if (currentEditType === 'medico_acao') {
                     container?.classList.add('action-edit-mode');
                     const bloqueadas = ['hospitais', 'membros', 'servicos', 'clh', 'congregacoes', 'especialidades', 'pacientes'];
                     bloqueadas.forEach(tab => document.querySelector(`.tab-link[data-tab="${tab}"]`)?.classList.add('locked'));
-                    
                     setupActionUI();
                     await loadAndPopulateMedicoForm(currentEditId);
                     document.getElementById('atuacao-medicos-container')?.setSelectedIds([currentEditId]);
-                    document.getElementById('lead-medicos-container')?.setSelectedIds([currentEditId]);
                     switchToTab('acao');
                     await initializeActionEditor(currentEditId, 'medico');
                 } 
@@ -2035,11 +2251,9 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
                     container?.classList.add('action-edit-mode');
                     const bloqueadas = ['hospitais', 'medicos', 'servicos', 'clh', 'congregacoes', 'especialidades', 'pacientes'];
                     bloqueadas.forEach(tab => document.querySelector(`.tab-link[data-tab="${tab}"]`)?.classList.add('locked'));
-
                     setupActionUI();
                     await loadAndPopulateMembroForm(currentEditId);
                     document.getElementById('atuacao-membros-container')?.setSelectedIds([currentEditId]);
-                    document.getElementById('lead-membros-container')?.setSelectedIds([currentEditId]);
                     switchToTab('acao');
                     await initializeActionEditor(currentEditId, 'membro');
                 }
@@ -2052,43 +2266,23 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
                     container?.classList.add('edit-mode');
                     switchToTab('medicos');
                     await loadAndPopulateMedicoForm(currentEditId);
-                } 
+                }
             } else {
-                // --- MODO GLOBAL (ACESSO DIRETO MASTER.HTML) ---
-                
-                // Preparar a interface de Ação para o modo global
+                // --- MODO GLOBAL (SEM ID) ---
                 setupActionUI(); 
-
-                // Event listener para carregar TODAS as ações quando o utilizador clicar na aba Ação
                 const acaoTabLink = document.querySelector('.tab-link[data-tab="acao"]');
                 if (acaoTabLink) {
                     acaoTabLink.addEventListener('click', () => {
-                        // Se não houver ID na URL, initializeActionEditor carrega tudo
                         if (!currentEditId) initializeActionEditor();
                     }, { once: true });
                 }
-
-                // Iniciar formulário de médico com campos de morada vazios por defeito
-                addMoradaInput();
-                addMoradaInput();
+                if (document.getElementById('d-moradas-list')) {
+                    addMoradaInput();
+                }
             }
-        }
+        } // FIM DA FUNÇÃO initializePage
 
- 
-
-        // Função auxiliar para UI da aba Ação
-        function setupActionUI() {
-            const acaoTab = document.getElementById('tab-acao');
-            if (acaoTab) {
-                acaoTab.querySelectorAll('.edit-list-container').forEach(el => el.classList.remove('hidden'));
-                acaoTab.querySelectorAll('form').forEach(el => el.classList.add('hidden'));
-                acaoTab.querySelectorAll('#btn-show-form-atuacao, #btn-show-form-lead').forEach(el => el.classList.remove('hidden'));
-            }
-            setupFormToggle('form-atuacao', 'btn-show-form-atuacao', 'btn-cancel-atuacao', resetAtuacaoForm);
-            setupFormToggle('form-lead', 'btn-show-form-lead', 'btn-cancel-lead', resetLeadForm);
-        }
-
-                // Executar inicialização e remover loader
+        // 6. EXECUTAR INICIALIZAÇÃO
         Promise.all([initializePage(), minimumDelayPromise]).then(() => {
             loader.classList.add('hidden');
         }).catch(err => {
@@ -2101,6 +2295,21 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
         window.location.href = 'index.html';
     }
 });
+
+
+
+// 8. FUNÇÃO AUXILIAR UI
+function setupActionUI() {
+    const acaoTab = document.getElementById('tab-acao');
+    if (acaoTab) {
+        acaoTab.querySelectorAll('.edit-list-container').forEach(el => el.classList.remove('hidden'));
+        acaoTab.querySelectorAll('form').forEach(el => el.classList.add('hidden'));
+        acaoTab.querySelectorAll('#btn-show-form-atuacao, #btn-show-form-lead').forEach(el => el.classList.remove('hidden'));
+    }
+    setupFormToggle('form-atuacao', 'btn-show-form-atuacao', 'btn-cancel-atuacao', resetAtuacaoForm);
+    setupFormToggle('form-lead', 'btn-show-form-lead', 'btn-cancel-lead', resetLeadForm);
+}
+
 
 // Ajuste final na função de carregar o editor de ações para suportar ambos os tipos
 async function initializeActionEditor(id = null, tipo = null) {
