@@ -307,30 +307,81 @@
             }).join('');
         }
 
-        async function loadMyCases(memberData) {
-            const container = document.getElementById('cases-list');
-            const myAtuacaoIds = memberData.atuacoes_ids || [];
-            if (myAtuacaoIds.length === 0) { container.innerHTML = '<p style="text-align:center; padding:40px;">Nenhum caso ativo.</p>'; return; }
-            const [atuSnap, pacSnap, medSnap] = await Promise.all([getDocs(collection(db, "atuacoes")), getDocs(collection(db, "pacientes")), getDocs(collection(db, "medicos"))]);
-            const atuMap = new Map(atuSnap.docs.map(d => [d.id, d.data()]));
-            const pacMap = new Map(pacSnap.docs.map(d => [d.id, d.data()]));
-            const medMap = new Map(medSnap.docs.map(d => [d.id, d.data()]));
+   async function loadMyCases(memberData) {
+    const container = document.getElementById('cases-list');
+    const myAtuacaoIds = memberData.atuacoes_ids || [];
+    
+    if (myAtuacaoIds.length === 0) { 
+        container.innerHTML = '<p style="text-align:center; padding:40px; color:var(--secondary-color);">Nenhum caso ativo.</p>'; 
+        return; 
+    }
 
-            container.innerHTML = myAtuacaoIds.map(id => {
-                const atu = atuMap.get(id); if (!atu) return '';
-                const pac = pacMap.get(atu.paciente_ids?.[0]);
-                const docs = atu.medico_ids?.map(mId => medMap.get(mId)?.nome).filter(Boolean).join(", ");
-                return `
-                    <div class="case-card">
-                        <div class="card-summary"><div class="card-info"><h3 class="case-title">${formatDate(atu.data)} - ${pac?.nome || '...'}</h3></div></div>
-                        <div class="card-details">
-                            <p><strong>Paciente:</strong> ${pac?.nome_completo || 'N/A'}</p>
-                            <p><strong>Médicos:</strong> ${docs || 'N/A'}</p>
-                            <p><strong>Observações:</strong> ${atu.observacoes || 'Sem notas'}</p>
-                        </div>
-                    </div>`;
-            }).join('');
-        }
+    // Carregamento global de dados em paralelo (Performance)
+    const [atuSnap, pacSnap, medSnap, espSnap] = await Promise.all([
+        getDocs(collection(db, "atuacoes")), 
+        getDocs(collection(db, "pacientes")), 
+        getDocs(collection(db, "medicos")),
+        getDocs(collection(db, "especialidade")) // Carrega as especialidades
+    ]);
+
+    // Criar Mapas para busca rápida
+    const atuMap = new Map(atuSnap.docs.map(d => [d.id, d.data()]));
+    const pacMap = new Map(pacSnap.docs.map(d => [d.id, d.data()]));
+    const medMap = new Map(medSnap.docs.map(d => [d.id, { id: d.id, ...d.data() }]));
+    const espMap = new Map(espSnap.docs.map(d => [d.id, d.data().nome]));
+
+    container.innerHTML = myAtuacaoIds.map(id => {
+        const atu = atuMap.get(id); 
+        if (!atu) return '';
+
+        // Detalhes do Paciente
+        const pacId = (atu.paciente_ids && atu.paciente_ids.length > 0) ? atu.paciente_ids[0] : null;
+        const pac = pacMap.get(pacId);
+        const nomeExibicao = (pac?.nome_completo && pac.nome_completo.trim() !== "") 
+                             ? pac.nome_completo 
+                             : (pac?.nome || 'N/A');
+
+        // Lógica para Médicos com Link e Especialidades entre parênteses
+        const docsHtml = (atu.medico_ids || [])
+            .map(mId => {
+                const med = medMap.get(mId);
+                if (!med) return null;
+
+                // Reúne IDs de especialidades e subespecialidades e traduz para nomes
+                const allEspIds = [
+                    ...(med.especialidade_ids || []),
+                    ...(med.sub_especialidade_ids || [])
+                ];
+                
+                const nomesEspecialidades = allEspIds
+                    .map(eId => espMap.get(eId))
+                    .filter(Boolean); // Remove nulos
+
+                const sufixo = nomesEspecialidades.length > 0 
+                               ? ` (${nomesEspecialidades.join(", ")})` 
+                               : "";
+
+                // Retorna o link HTML para o perfil do médico
+                return `<a href="medico.html?id=${med.id}" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">${med.nome}${sufixo}</a>`;
+            })
+            .filter(Boolean)
+            .join(", ");
+
+        return `
+            <div class="case-card">
+                <div class="card-summary">
+                    <div class="card-info">
+                        <h3 class="case-title">${formatDate(atu.data)} - ${pac?.nome || 'Paciente s/ Nome'}</h3>
+                    </div>
+                </div>
+                <div class="card-details">
+                    <p><strong>Paciente:</strong> ${nomeExibicao}</p>
+                    <p><strong>Médicos:</strong> ${docsHtml || 'N/A'}</p>
+                    <p><strong>Observações:</strong> ${atu.observacoes || 'Sem notas'}</p>
+                </div>
+            </div>`;
+    }).join('');
+}
 
   async function loadMyAgenda(memberId) {
     const container = document.getElementById('agenda-list');
