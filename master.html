@@ -312,6 +312,32 @@
     padding: 2px 5px;
 }
 
+/* Estilo para o campo dropdown quando selecionado "Sim" */
+.select-yellow {
+    background-color: var(--yellow-accent) !important;
+    color: #212529 !important;
+    font-weight: bold;
+}
+
+/* Estilo para o "piccard" (badge) na lista lateral */
+.badge-novo-contato {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: var(--yellow-accent);
+    color: #212529;
+    font-size: 0.65em;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Garantir que o item da lista tem posição relativa para o badge não fugir */
+.toggle-list-item {
+    position: relative;
+}
 
 </style>
 
@@ -656,6 +682,24 @@
                 <legend>Criar / Editar Atuação</legend>
                 <div class="form-group"><label for="atuacao-membros-search">Membros</label><div id="atuacao-membros-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-membros-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
                 <div class="form-row cols-2" style="margin-top:20px;"><div class="form-group"><label for="atuacao-ordem">Nº Ordem</label><input type="text" id="atuacao-ordem"></div><div class="form-group"><label for="atuacao-tipo">Tipo</label><select id="atuacao-tipo"><option value="">Selecione...</option><option>Actuação</option><option>Apresentação</option></select></div><div class="form-group"><label for="atuacao-data">Data</label><input type="date" id="atuacao-data"></div><div class="form-group"><label for="atuacao-quantidade">Quantidade</label><input type="number" id="atuacao-quantidade"></div></div>
+                <div class="form-row cols-2" style="margin-top:20px;">
+    <div class="form-group">
+        <label for="atuacao-documento">Documento</label>
+        <select id="atuacao-documento">
+            <option value="">Selecione...</option>
+            <option>hlc-31</option>
+            <option>hlc-23</option>
+            <option>RS</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="atuacao-novo-contato">Novo Contato</label>
+        <select id="atuacao-novo-contato">
+            <option value="nao" selected>Não</option>
+            <option value="sim">Sim</option>
+        </select>
+    </div>
+</div>
                 <div class="form-group" style="margin-top:20px;"><label for="atuacao-medicos-search">Médico(s)</label><div id="atuacao-medicos-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-medicos-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
                 <div class="form-group" style="margin-top:20px;"><label for="atuacao-pacientes-search">Paciente(s)</label><div id="atuacao-pacientes-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-pacientes-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
                 <div class="form-group" style="margin-top:20px;">
@@ -1137,19 +1181,23 @@ function renderToggleList(containerId, items, titleField, textField, collectionN
     const container = document.getElementById(containerId);
     if (!container) return;
     if (items.length === 0) {
-        container.innerHTML = `<p>Nenhum item encontrado para este médico.</p>`;
+        container.innerHTML = `<p>Nenhum item encontrado.</p>`;
         return;
     }
     
     container.innerHTML = items
         .sort((a,b) => new Date(b.data[titleField]) - new Date(a.data[titleField]))
         .map(item => {
-            // Verifica se está fechado (funciona para Atuações e Leads)
             const isClosed = item.data.fechado === true || item.data.fechado === "Sim";
             const closedClass = isClosed ? 'closed' : '';
+            
+            // NOVO: Verificar se é Novo Contato para mostrar o piccard
+            const isNovoContato = item.data.novo_contato === 'sim';
+            const badgeHtml = isNovoContato ? `<span class="badge-novo-contato">Novo Contato</span>` : '';
 
             return `
                 <div class="toggle-list-item ${closedClass}" data-id="${item.id}" data-collection="${collectionName}">
+                    ${badgeHtml}
                     <strong>${formatDate(item.data[titleField])}</strong>
                     <p>${truncateText(item.data[textField])}</p>
                 </div>
@@ -1219,47 +1267,92 @@ function setupActionEditor(idRef) {
 function populateAtuacaoForm(data, id) {
     const form = document.getElementById('form-atuacao');
     if (!form) return;
+
+    // 1. Preparar a UI do Formulário
     form.classList.remove('hidden');
     document.getElementById('btn-show-form-atuacao').classList.add('hidden');
     form.dataset.editId = id;
     form.querySelector('legend').textContent = 'Editar Atuação';
     form.querySelector('.btn-submit').textContent = 'Atualizar Atuação';
     document.getElementById('btn-cancel-atuacao').classList.remove('hidden');
+
+    // 2. Preencher Multi-Selects (Componentes de Pills)
     document.getElementById('atuacao-membros-container').setSelectedIds(data.membro_ids || []);
     document.getElementById('atuacao-medicos-container').setSelectedIds(data.medico_ids || []);
     document.getElementById('atuacao-pacientes-container').setSelectedIds(data.paciente_ids || []);
+
+    // 3. Preencher Campos de Texto e Data
     document.getElementById('atuacao-ordem').value = data.ordem || '';
     document.getElementById('atuacao-tipo').value = data.tipo || '';
     document.getElementById('atuacao-data').value = data.data || '';
     document.getElementById('atuacao-quantidade').value = data.quantidade || '';
+
+    // 4. Preencher as duas Caixas de Observações
     document.getElementById('atuacao-obs').value = data.observacoes || '';
-     document.getElementById('atuacao-obs-medico').value = data.observacoes_medico || ''; 
+    document.getElementById('atuacao-obs-medico').value = data.observacoes_medico || '';
+
+    // 5. Preencher Novos Dropdowns (Documento e Novo Contato)
+    document.getElementById('atuacao-documento').value = data.documento || '';
+    
+    const novoContatoValue = data.novo_contato || 'nao';
+    const selectNC = document.getElementById('atuacao-novo-contato');
+    selectNC.value = novoContatoValue;
+
+    // Aplicar destaque amarelo se for Novo Contato
+    if (novoContatoValue === 'sim') {
+        selectNC.classList.add('select-yellow');
+    } else {
+        selectNC.classList.remove('select-yellow');
+    }
+
+    // 6. Preencher Status Fechado
     document.getElementById('atuacao-fechado').value = data.fechado ? 'sim' : 'nao';
+
+    // 7. Scroll suave até ao formulário
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function resetAtuacaoForm() {
     const form = document.getElementById('form-atuacao');
     if (!form) return;
+
+    // 1. Limpar campos de texto e selects padrão
     form.reset();
-    document.getElementById('atuacao-obs-medico').value = '';
     form.dataset.editId = '';
+
+    // 2. Resetar a UI para modo de criação
     form.querySelector('legend').textContent = 'Criar Nova Atuação';
     form.querySelector('.btn-submit').textContent = 'Guardar Atuação';
     document.getElementById('btn-cancel-atuacao').classList.add('hidden');
     
-    // Limpar seleções
+    // 3. Limpar Seleções dos Multi-Selects
     document.getElementById('atuacao-membros-container').setSelectedIds([]);
     document.getElementById('atuacao-pacientes-container').setSelectedIds([]);
     
-    // Se estivermos num contexto de médico, re-selecionamos o médico. Caso contrário, fica vazio.
-    document.getElementById('atuacao-medicos-container').setSelectedIds(currentEditId ? [currentEditId] : []);
+    // Se estivermos no contexto de um médico específico, re-selecionar esse médico automaticamente
+    if (currentEditId && currentEditType.includes('medico')) {
+        document.getElementById('atuacao-medicos-container').setSelectedIds([currentEditId]);
+    } else {
+        document.getElementById('atuacao-medicos-container').setSelectedIds([]);
+    }
     
+    // 4. Resetar Campos Específicos e Cores
+    const selectNC = document.getElementById('atuacao-novo-contato');
+    selectNC.value = 'nao';
+    selectNC.classList.remove('select-yellow');
+
+    document.getElementById('atuacao-documento').value = '';
+    document.getElementById('atuacao-obs-medico').value = '';
+
+    // 5. Limpar seleção visual na lista lateral
     document.querySelectorAll('#atuacoes-list .toggle-list-item.active').forEach(el => el.classList.remove('active'));
     
-    // Sempre esconder o formulário e mostrar o botão de "Novo" após resetar
+    // 6. Fechar formulário e mostrar botão de "Nova Atuação"
     form.classList.add('hidden');
     document.getElementById('btn-show-form-atuacao').classList.remove('hidden');
+
+    // Resetar o estado de "alterações não guardadas"
+    isActionFormDirty = false;
 }
 
 function populateLeadForm(data, id) {
@@ -1831,7 +1924,9 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
     quantidade: document.getElementById('atuacao-quantidade').value,
     observacoes: document.getElementById('atuacao-obs').value,
      observacoes_medico: document.getElementById('atuacao-obs-medico').value,
-    fechado: document.getElementById('atuacao-fechado').value === 'sim' // Adicione esta linha
+    fechado: document.getElementById('atuacao-fechado').value === 'sim',
+    documento: document.getElementById('atuacao-documento').value,
+    novo_contato: document.getElementById('atuacao-novo-contato').value
 };
                 try {
                     if (editId) {
@@ -1901,7 +1996,20 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
             makeSelectSearchable(document.getElementById('d-congregacao-searchable-container'), congregacoesCache);
             makeSelectSearchable(document.getElementById('lead-hospital-container'), hospitaisCache);
             
-            // 4. LÓGICA DE ROTAS DE EDIÇÃO
+              // --- LÓGICA VISUAL DO CAMPO "NOVO CONTATO" ---
+    // Faz o campo Novo Contato ficar amarelo se selecionado "Sim"
+    const novoContatoSelect = document.getElementById('atuacao-novo-contato');
+    if (novoContatoSelect) {
+        novoContatoSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'sim') {
+                e.target.classList.add('select-yellow');
+            } else {
+                e.target.classList.remove('select-yellow');
+            }
+        });
+    }
+
+            // 5. LÓGICA DE ROTAS DE EDIÇÃO
          const params = new URLSearchParams(window.location.search);
             currentEditType = params.get('edit');
             currentEditId = params.get('id');
