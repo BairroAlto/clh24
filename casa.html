@@ -80,8 +80,31 @@
 
         .medico-info-row { display: flex; gap: 20px; align-items: flex-start; margin: 15px 0; }
         .medico-detail-photo { width: 100px; height: 100px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border-color); cursor: zoom-in; }
-        .med-info-grid { display: grid; grid-template-columns: 100px 1fr; gap: 5px; flex-grow: 1; margin: 0; }
-        .med-info-grid dt { color: var(--secondary-color); font-weight: bold; font-size: 0.75em; text-transform: uppercase; }
+.med-info-grid { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 2px; 
+    flex-grow: 1; 
+    margin: 0; 
+}
+.med-info-grid dt { 
+    color: var(--secondary-color); 
+    font-weight: bold; 
+    font-size: 0.75em; 
+    text-transform: uppercase; 
+    margin-top: 8px; /* Pequeno espaço entre blocos de informação */
+}
+.med-info-grid dt:first-child { 
+    margin-top: 0; 
+}
+
+.med-info-grid dd { 
+    margin: 0; 
+    color: #dee2e6; 
+    font-size: 0.95em; 
+    margin-bottom: 2px; 
+}
+
         .med-info-grid dd { margin: 0; color: #dee2e6; font-size: 0.9em; }
         .med-atuacoes-list { background: #2b3035; padding: 10px; border-radius: 4px; border-left: 3px solid var(--primary-color); margin-top: 5px; font-size: 0.85em; }
 
@@ -309,53 +332,108 @@
             }).join('');
         }
 
-        async function loadMyAgenda(memberId) {
-            const container = document.getElementById('agenda-list');
-            const qAgenda = query(collection(db, "agenda"), where("participantes_ids", "array-contains", memberId));
-            const [agendaSnap, medSnap, espSnap, atuSnap] = await Promise.all([getDocs(qAgenda), getDocs(collection(db, "medicos")), getDocs(collection(db, "especialidade")), getDocs(collection(db, "atuacoes"))]);
-            const medMap = new Map(medSnap.docs.map(d => [d.id, {id: d.id, ...d.data()}]));
-            const espMap = new Map(espSnap.docs.map(d => [d.id, d.data().nome]));
-            const atuMap = new Map(atuSnap.docs.map(d => [d.id, d.data()]));
+  async function loadMyAgenda(memberId) {
+    const container = document.getElementById('agenda-list');
+    
+    // 1. Procurar na agenda onde o membro logado é um dos participantes
+    const qAgenda = query(collection(db, "agenda"), where("participantes_ids", "array-contains", memberId));
+    
+    // 2. Carregar todos os dados necessários em paralelo para performance
+    const [agendaSnap, medSnap, espSnap, atuSnap] = await Promise.all([
+        getDocs(qAgenda),
+        getDocs(collection(db, "medicos")),
+        getDocs(collection(db, "especialidade")),
+        getDocs(collection(db, "atuacoes"))
+    ]);
 
-            container.innerHTML = agendaSnap.docs.map(doc => {
-                const agenda = doc.data();
-                const meds = (agenda.medico_ids || []).map(id => medMap.get(id)).filter(Boolean);
-                return `
-                    <div class="case-card">
-                        <div class="card-summary"><div class="card-info"><h3 class="case-title"><span class="badge-date">${formatDate(agenda.data_agendada)}</span>Trabalho de Campo</h3></div></div>
-                        <div class="card-details">
-                            <div class="medico-item-container">
-                                ${meds.map(med => {
-                                    const esps = (med.especialidade_ids || []).map(id => espMap.get(id)).filter(Boolean).join(", ");
-                                    const atus = (med.atuacoes_ids || []).map(id => atuMap.get(id)).filter(Boolean).sort((a,b) => b.data.localeCompare(a.data)).map(a => `<div class="med-atuacoes-list"><b>${formatDate(a.data)}</b>: ${a.observacoes}</div>`).join("");
-                                    return `
-                                        <div class="medico-toggle-card">
-                                            <div class="medico-header" onclick="this.parentElement.classList.toggle('open')">
-                                                <img src="${med.imagem_url || 'https://via.placeholder.com/45'}">
-                                                <div class="medico-name">${med.nome}</div>
-                                                <i class="fas fa-chevron-down"></i>
-                                            </div>
-                                            <div class="medico-details-inner">
-                                                <a href="medico.html?id=${med.id}" class="btn-visit-profile"><i class="fas fa-external-link-alt"></i> Perfil</a>
-                                                <button class="btn-note" onclick="openNoteModal('${med.id}', '${med.nome}')"><i class="fas fa-sticky-note"></i> Anotação</button>
-                                                <div class="medico-info-row">
-                                                    <img src="${med.imagem_url || 'https://via.placeholder.com/100'}" class="medico-detail-photo">
-                                                    <dl class="med-info-grid">
-                                                        <dt>Género</dt><dd>${med.genero || 'N/A'}</dd>
-                                                        <dt>Especialidade</dt><dd>${esps || 'N/A'}</dd>
-                                                        <dt>Última Visita</dt><dd>${med.ultimaVisita ? formatDate(med.ultimaVisita) : 'Nunca'}</dd>
-                                                    </dl>
-                                                </div>
-                                                <strong style="font-size:0.8em; color:var(--primary-color)">HISTÓRICO</strong>
-                                                ${atus || '<p>Sem registos.</p>'}
-                                            </div>
-                                        </div>`;
-                                }).join('')}
-                            </div>
-                        </div>
-                    </div>`;
-            }).join('');
-        }
+    // 3. Criar Mapas para busca rápida de referências
+    const medMap = new Map(medSnap.docs.map(d => [d.id, {id: d.id, ...d.data()}]));
+    const espMap = new Map(espSnap.docs.map(d => [d.id, d.data().nome]));
+    const atuMap = new Map(atuSnap.docs.map(d => [d.id, d.data()]));
+
+    if (agendaSnap.empty) {
+        container.innerHTML = '<p style="text-align:center; padding:40px; color:var(--secondary-color);">Sem agendamentos para hoje.</p>';
+        return;
+    }
+
+    // 4. Gerar o HTML dos Cards de Agenda
+    container.innerHTML = agendaSnap.docs.map(doc => {
+        const agenda = doc.data();
+        const meds = (agenda.medico_ids || []).map(id => medMap.get(id)).filter(Boolean);
+
+        return `
+            <div class="case-card">
+                <div class="card-summary">
+                    <div class="card-info">
+                        <h3 class="case-title">
+                            <span class="badge-date">${formatDate(agenda.data_agendada)}</span>
+                            Trabalho de Campo
+                        </h3>
+                    </div>
+                </div>
+                <div class="card-details">
+                    <div class="medico-item-container">
+                        ${meds.map(med => {
+                            // Mapear especialidades do médico
+                            const esps = (med.especialidade_ids || []).map(id => espMap.get(id)).filter(Boolean).join(", ");
+                            
+                            // Mapear e formatar o HISTÓRICO (Data sobre Observação)
+                            const atus = (med.atuacoes_ids || [])
+                                .map(id => atuMap.get(id))
+                                .filter(Boolean)
+                                .sort((a,b) => (b.data || '').localeCompare(a.data || ''))
+                                .map(a => `
+                                    <div class="med-atuacoes-list" style="display: flex; flex-direction: column; margin-bottom: 10px;">
+                                        <span style="font-size: 0.75em; color: var(--primary-color); font-weight: bold; text-transform: uppercase; margin-bottom: 2px;">
+                                            ${formatDate(a.data)}
+                                        </span>
+                                        <div style="line-height: 1.4; color: #dee2e6; font-size: 0.9em;">
+                                            ${a.observacoes || 'Sem notas registadas.'}
+                                        </div>
+                                    </div>
+                                `).join("");
+
+                            return `
+                                <div class="medico-toggle-card">
+                                    <div class="medico-header" onclick="this.parentElement.classList.toggle('open')">
+                                        <img src="${med.imagem_url || 'https://via.placeholder.com/45'}">
+                                        <div class="medico-name">${med.nome}</div>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                    <div class="medico-details-inner">
+                                        <div style="margin-bottom: 15px;">
+                                            <a href="medico.html?id=${med.id}" class="btn-visit-profile"><i class="fas fa-external-link-alt"></i> Perfil</a>
+                                            <button class="btn-note" onclick="openNoteModal('${med.id}', '${med.nome}')"><i class="fas fa-sticky-note"></i> Anotação</button>
+                                        </div>
+
+                                        <div class="medico-info-row">
+                                            <img src="${med.imagem_url || 'https://via.placeholder.com/100'}" class="medico-detail-photo">
+                                            
+                                            <!-- Grid configurada via CSS para empilhar em coluna -->
+                                            <dl class="med-info-grid">
+                                                <dt>Género</dt>
+                                                <dd>${med.genero || 'N/A'}</dd>
+                                                
+                                                <dt>Especialidade</dt>
+                                                <dd>${esps || 'N/A'}</dd>
+                                                
+                                                <dt>Última Visita</dt>
+                                                <dd>${med.ultimaVisita ? formatDate(med.ultimaVisita) : 'Nunca'}</dd>
+                                            </dl>
+                                        </div>
+
+                                        <p style="font-size:0.75em; color:var(--primary-color); font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #3d4248; padding-bottom: 5px;">
+                                            HISTÓRICO
+                                        </p>
+                                        ${atus || '<p style="font-size:0.85em; color:var(--secondary-color);">Sem registos anteriores.</p>'}
+                                    </div>
+                                </div>`;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>`;
+    }).join('');
+}
 
         function formatDate(ds) { if(!ds) return "---"; const p = ds.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : ds; }
 
