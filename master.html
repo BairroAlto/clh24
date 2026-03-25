@@ -560,6 +560,14 @@
             <div id="d-links-list" class="dynamic-list"></div>
             <button type="button" class="btn btn-add btn-sm" onclick="addLinkInput()">Adicionar Link</button>
         </fieldset>
+        <fieldset style="border-color: var(--yellow-accent);">
+    <legend style="color: var(--yellow-accent);">Atuação (Opcional)</legend>
+    <div class="form-group">
+        <label>Assuntos Próxima Visita</label>
+        <div id="d-assuntos-list" class="dynamic-list"></div>
+        <button type="button" class="btn btn-add btn-sm" onclick="addAssuntoProximaVisitaInput()" style="background-color: var(--yellow-accent); color: #212529;">Adicionar mais assuntos</button>
+    </div>
+</fieldset>
         <button type="submit" class="btn btn-submit">Guardar Médico</button>
     </form>
 </div>
@@ -650,7 +658,15 @@
                 <div class="form-row cols-2" style="margin-top:20px;"><div class="form-group"><label for="atuacao-ordem">Nº Ordem</label><input type="text" id="atuacao-ordem"></div><div class="form-group"><label for="atuacao-tipo">Tipo</label><select id="atuacao-tipo"><option value="">Selecione...</option><option>Actuação</option><option>Apresentação</option></select></div><div class="form-group"><label for="atuacao-data">Data</label><input type="date" id="atuacao-data"></div><div class="form-group"><label for="atuacao-quantidade">Quantidade</label><input type="number" id="atuacao-quantidade"></div></div>
                 <div class="form-group" style="margin-top:20px;"><label for="atuacao-medicos-search">Médico(s)</label><div id="atuacao-medicos-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-medicos-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
                 <div class="form-group" style="margin-top:20px;"><label for="atuacao-pacientes-search">Paciente(s)</label><div id="atuacao-pacientes-container" class="multi-search-select-container"><div class="multi-search-select-input-wrapper"><input type="text" id="atuacao-pacientes-search" class="multi-search-select-input" placeholder="Pesquisar..."></div><div class="multi-search-select-dropdown"></div></div></div>
-                <div class="form-group" style="margin-top:20px;"><label for="atuacao-obs">Observações</label><textarea id="atuacao-obs"></textarea></div>
+                <div class="form-group" style="margin-top:20px;">
+    <label for="atuacao-obs">Observações (apresentação)</label>
+    <textarea id="atuacao-obs"></textarea>
+</div>
+<div class="form-group" style="margin-top:20px;">
+    <label for="atuacao-obs-medico">Observações (Médico)</label>
+    <textarea id="atuacao-obs-medico" style="min-height: 100px;"></textarea>
+</div>
+
                 <div class="form-group" style="margin-top:20px;">
                     <label for="atuacao-fechado">Fechado?</label>
                     <select id="atuacao-fechado"><option value="nao" selected>Não</option><option value="sim">Sim</option></select>
@@ -987,6 +1003,30 @@ window.addMoradaInput = function(morada = {}) {
     container.appendChild(div);
 };
 
+window.addAssuntoProximaVisitaInput = function(assunto = {}) {
+    const container = document.getElementById('d-assuntos-list');
+    if (!container) return;
+
+    const div = document.createElement('div');
+    div.className = 'input-group';
+    
+    // Ajustamos o alinhamento para o topo (flex-start) para que a data não fique no meio da caixa grande
+    div.style.display = 'flex';
+    div.style.alignItems = 'flex-start'; 
+    div.style.gap = '10px';
+    div.style.marginBottom = '10px';
+
+    div.innerHTML = `
+        <input type="date" class="assunto-data" style="flex: 0 0 150px; padding: 10px;" value="${assunto.data || ''}">
+        <textarea class="assunto-texto" 
+                  placeholder="Descreva o assunto a tratar na próxima visita..." 
+                  style="flex: 1; min-height: 75px; padding: 10px; resize: vertical;"
+        >${assunto.texto || ''}</textarea>
+        <button type="button" class="btn btn-remove" style="height: 40px;" onclick="this.parentElement.remove()">Remover</button>
+    `;
+    container.appendChild(div);
+};
+
 function initMultiSearchSelect(containerId, dataCache) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -1193,6 +1233,7 @@ function populateAtuacaoForm(data, id) {
     document.getElementById('atuacao-data').value = data.data || '';
     document.getElementById('atuacao-quantidade').value = data.quantidade || '';
     document.getElementById('atuacao-obs').value = data.observacoes || '';
+     document.getElementById('atuacao-obs-medico').value = data.observacoes_medico || ''; 
     document.getElementById('atuacao-fechado').value = data.fechado ? 'sim' : 'nao';
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -1201,6 +1242,7 @@ function resetAtuacaoForm() {
     const form = document.getElementById('form-atuacao');
     if (!form) return;
     form.reset();
+    document.getElementById('atuacao-obs-medico').value = '';
     form.dataset.editId = '';
     form.querySelector('legend').textContent = 'Criar Nova Atuação';
     form.querySelector('.btn-submit').textContent = 'Guardar Atuação';
@@ -1269,65 +1311,99 @@ async function loadAndPopulateMedicoForm(medicoId) {
     try {
         const docRef = doc(db, 'medicos', medicoId);
         const docSnap = await getDoc(docRef);
+        
         if (!docSnap.exists()) {
-            alert("Erro: Médico não encontrado.");
+            alert("Erro: Médico não encontrado na base de dados.");
             return;
         }
+        
         const data = docSnap.data();
         
+        // 1. Atualizar Títulos e Botão
         document.querySelector('#tab-medicos h2').textContent = `Editar Médico: ${data.nome}`;
         document.querySelector('#form-medico .btn-submit').textContent = 'Atualizar Médico';
+
+        // 2. Campos de Texto Simples e Selects
         document.getElementById('d-nome').value = data.nome || '';
         document.getElementById('d-nome-completo').value = data.nome_completo || '';
         document.getElementById('d-cedula').value = data.cedula || '';
         document.getElementById('d-imagem-link').value = data.imagem_url || '';
         document.getElementById('d-genero').value = data.genero || '';
-        document.getElementById('d-situacao-coop').value = data.cooperador_situacao || '';
+        document.getElementById('d-situacao-coop').value = data.situacao_coop || data.cooperador_situacao || ''; // Suporte a ambos os nomes de campo
         document.getElementById('d-classificacao').value = data.classificacao || '';
         document.getElementById('d-mailings').value = data.recebe_mailings_dih ? 'sim' : 'nao';
-       document.getElementById('d-resp-clh-container').setSelectedIds(data.responsavel_clh_ids || []);
-        
+
+        // 3. Multi-Selects (Componentes Pesquisáveis)
+        document.getElementById('d-resp-clh-container').setSelectedIds(data.responsavel_clh_ids || []);
+        document.getElementById('d-especialidades-container').setSelectedIds(data.especialidade_ids || []);
+        document.getElementById('d-sub-especialidades-container').setSelectedIds(data.sub_especialidade_ids || []);
+
+        // 4. Moradas Dinâmicas
         const moradasContainer = document.getElementById('d-moradas-list');
         moradasContainer.innerHTML = '';
         const moradasData = data.moradas || [];
-        moradasData.forEach(morada => addMoradaInput(morada));
-        
-        const moradasVisiveis = moradasContainer.children.length;
-        if (moradasVisiveis < 2) {
-            for (let i = moradasVisiveis; i < 2; i++) {
-                addMoradaInput();
-            }
+        if (moradasData.length > 0) {
+            moradasData.forEach(morada => addMoradaInput(morada));
+        } else {
+            // Se não houver moradas, adiciona duas linhas vazias por padrão
+            addMoradaInput();
+            addMoradaInput();
         }
 
-        document.querySelector('#tab-medicos .initial-input[type="email"]').value = (data.emails || [])[0] || '';
-        document.getElementById('d-emails-list').innerHTML = '';
-        (data.emails || []).slice(1).forEach(val => addDynamicInput('d-emails-list', 'email', 'exemplo@email.com', val));
-        document.querySelector('#tab-medicos .initial-input[type="tel"]').value = (data.telemoveis || [])[0] || '';
-        document.getElementById('d-telemoveis-list').innerHTML = '';
-        (data.telemoveis || []).slice(1).forEach(val => addDynamicInput('d-telemoveis-list', 'tel', '912345678', val));
-        document.getElementById('d-links-list').innerHTML = '';
+        // 5. Contactos (Email e Telemóvel)
+        // Primeiro Email (Campo fixo)
+        const emails = data.emails || [];
+        document.querySelector('#tab-medicos .initial-input[type="email"]').value = emails[0] || '';
+        // Emails Extra
+        const emailsExtraContainer = document.getElementById('d-emails-list');
+        emailsExtraContainer.innerHTML = '';
+        emails.slice(1).forEach(val => addDynamicInput('d-emails-list', 'email', 'exemplo@email.com', val));
+
+        // Primeiro Telemóvel (Campo fixo)
+        const telemoveis = data.telemoveis || [];
+        document.querySelector('#tab-medicos .initial-input[type="tel"]').value = telemoveis[0] || '';
+        // Telemóveis Extra
+        const telemoveisExtraContainer = document.getElementById('d-telemoveis-list');
+        telemoveisExtraContainer.innerHTML = '';
+        telemoveis.slice(1).forEach(val => addDynamicInput('d-telemoveis-list', 'tel', '912345678', val));
+
+        // 6. Links Dinâmicos
+        const linksContainer = document.getElementById('d-links-list');
+        linksContainer.innerHTML = '';
         (data.links || []).forEach(linkObject => addLinkInput(linkObject));
-        document.getElementById('d-especialidades-container').setSelectedIds(data.especialidade_ids || []);
-        document.getElementById('d-sub-especialidades-container').setSelectedIds(data.sub_especialidade_ids || []);
+
+        // 7. Componentes Searchable (CLH e Congregação)
         const clhId = data.clh_id || '';
         document.getElementById('d-clh-value').value = clhId;
         if(clhId) {
             const clh = clhCache.find(c => c.id === clhId);
             if(clh) document.getElementById('d-clh-search-input').value = clh.nome;
         }
+
         const congId = data.congregacao_id || '';
         document.getElementById('d-congregacao-value').value = congId;
         if(congId) {
             const cong = congregacoesCache.find(c => c.id === congId);
             if(cong) document.getElementById('d-congregacao-search-input').value = cong.nome;
         }
+
+        // 8. Posições (Hospitais e Serviços)
         const posicoesContainer = document.getElementById('d-posicoes-list');
         posicoesContainer.innerHTML = '';
         if (data.posicoes && data.posicoes.length > 0) {
             data.posicoes.forEach(pos => addPosicaoInput(pos));
         }
+
+        // --- NOVO: 9. Assuntos Próxima Visita (Secção Amarela) ---
+        const assuntosContainer = document.getElementById('d-assuntos-list');
+        assuntosContainer.innerHTML = '';
+        if (data.assuntos_proxima_visita && data.assuntos_proxima_visita.length > 0) {
+            data.assuntos_proxima_visita.forEach(assunto => addAssuntoProximaVisitaInput(assunto));
+        }
+
     } catch (error) {
         console.error("Erro ao carregar médico para edição:", error);
+        alert("Ocorreu um erro ao carregar os dados do médico para o formulário.");
     }
 }
 
@@ -1625,49 +1701,118 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
             });
             
             // Submissão Médico
-            document.getElementById('form-medico')?.addEventListener('submit', async e => {
-                e.preventDefault();
-                const medicoData = {
-                    nome: document.getElementById('d-nome').value, nome_completo: document.getElementById('d-nome-completo').value,
-                    cedula: document.getElementById('d-cedula').value, imagem_url: document.getElementById('d-imagem-link').value,
-                    genero: document.getElementById('d-genero').value, cooperador_situacao: document.getElementById('d-situacao-coop').value,
-                    classificacao: document.getElementById('d-classificacao').value,
-                    responsavel_clh_ids: document.getElementById('d-resp-clh-container').getSelectedIds(),
-                    recebe_mailings_dih: document.getElementById('d-mailings').value === 'sim',
-                    clh_id: document.getElementById('d-clh-value').value, congregacao_id: document.getElementById('d-congregacao-value').value
-                };
-                medicoData.emails = [document.querySelector('#tab-medicos .initial-input[type="email"]').value.trim(), ...getDynamicInputValues('d-emails-list')].filter(Boolean);
-                medicoData.telemoveis = [document.querySelector('#tab-medicos .initial-input[type="tel"]').value.trim(), ...getDynamicInputValues('d-telemoveis-list')].filter(Boolean);
-                medicoData.moradas = Array.from(document.querySelectorAll('#d-moradas-list .input-group')).map(m => ({
-                    obs: m.querySelector('.d-morada-obs').value.trim(), rua: m.querySelector('.d-morada-rua').value.trim()
-                })).filter(m => m.rua);
-                medicoData.especialidade_ids = document.getElementById('d-especialidades-container').getSelectedIds();
-                medicoData.sub_especialidade_ids = document.getElementById('d-sub-especialidades-container').getSelectedIds();
-                medicoData.posicoes = Array.from(document.querySelectorAll('#d-posicoes-list .input-group')).map(p => ({ 
-                    hospital_id: p.querySelector('.posicao-hospital')?.value, servico_id: p.querySelector('.posicao-servico')?.value, 
-                    cargo: p.querySelector('.posicao-cargo')?.value, 
-                    horario: { dia: p.querySelector('.posicao-horario-dia')?.value, parte: p.querySelector('.posicao-horario-parte')?.value } 
-                })).filter(p => p.hospital_id);
-                medicoData.links = Array.from(document.querySelectorAll('#d-links-list .dynamic-input')).map(input => ({ url: input.value.trim(), data_adicionado: input.dataset.date || new Date().toISOString() })).filter(l => l.url);
+    document.getElementById('form-medico')?.addEventListener('submit', async e => {
+    e.preventDefault();
 
-                try {
-                    if (currentEditId && (currentEditType === 'medico' || currentEditType === 'medico_acao')) {
-                        const medicoRef = doc(db, "medicos", currentEditId);
-                        const docBeforeSnap = await getDoc(medicoRef);
-                        await updateDoc(medicoRef, medicoData);
-                        await syncAssociations(currentEditId, docBeforeSnap.data().responsavel_clh_ids || [], medicoData.responsavel_clh_ids, 'membrosclh', 'medicos_responsabilidade_ids');
-                        alert("Médico atualizado!");
-                        if (currentEditType === 'medico_acao') switchToTab('acao');
-                        else window.location.href = `medico.html?id=${currentEditId}`;
-                    } else {
-                        medicoData.criado_em = new Date();
-                        const docRef = await addDoc(collection(db, "medicos"), medicoData);
-                        await syncAssociations(docRef.id, [], medicoData.responsavel_clh_ids, 'membrosclh', 'medicos_responsabilidade_ids');
-                        alert("Médico guardado!");
-                        e.target.reset();
-                    }
-                } catch (err) { console.error(err); alert("Erro ao guardar médico."); }
-            });
+    // 1. Dados Básicos e Selects Simples
+    const medicoData = {
+        nome: document.getElementById('d-nome').value.trim(),
+        nome_completo: document.getElementById('d-nome-completo').value.trim(),
+        cedula: document.getElementById('d-cedula').value.trim(),
+        imagem_url: document.getElementById('d-imagem-link').value.trim(),
+        genero: document.getElementById('d-genero').value,
+        cooperador_situacao: document.getElementById('d-situacao-coop').value,
+        classificacao: document.getElementById('d-classificacao').value.trim(),
+        recebe_mailings_dih: document.getElementById('d-mailings').value === 'sim',
+        clh_id: document.getElementById('d-clh-value').value,
+        congregacao_id: document.getElementById('d-congregacao-value').value,
+        // IDs de Multi-Selects
+        responsavel_clh_ids: document.getElementById('d-resp-clh-container').getSelectedIds(),
+        especialidade_ids: document.getElementById('d-especialidades-container').getSelectedIds(),
+        sub_especialidade_ids: document.getElementById('d-sub-especialidades-container').getSelectedIds()
+    };
+
+    // 2. Contactos (Email e Telemóvel) - Junta o inicial com os extra
+    medicoData.emails = [
+        document.querySelector('#tab-medicos .initial-input[type="email"]').value.trim(), 
+        ...getDynamicInputValues('d-emails-list')
+    ].filter(Boolean);
+
+    medicoData.telemoveis = [
+        document.querySelector('#tab-medicos .initial-input[type="tel"]').value.trim(), 
+        ...getDynamicInputValues('d-telemoveis-list')
+    ].filter(Boolean);
+
+    // 3. Moradas Dinâmicas
+    medicoData.moradas = Array.from(document.querySelectorAll('#d-moradas-list .input-group')).map(m => ({
+        rua: m.querySelector('.d-morada-rua').value.trim(),
+        obs: m.querySelector('.d-morada-obs').value.trim()
+    })).filter(m => m.rua);
+
+    // 4. Posições (Hospital + Serviço + Cargo)
+    medicoData.posicoes = Array.from(document.querySelectorAll('#d-posicoes-list .input-group')).map(p => ({ 
+        hospital_id: p.querySelector('.posicao-hospital')?.value, 
+        servico_id: p.querySelector('.posicao-servico')?.value, 
+        cargo: p.querySelector('.posicao-cargo')?.value, 
+        horario: { 
+            dia: p.querySelector('.posicao-horario-dia')?.value, 
+            parte: p.querySelector('.posicao-horario-parte')?.value 
+        } 
+    })).filter(p => p.hospital_id);
+
+    // 5. Links Dinâmicos
+    medicoData.links = Array.from(document.querySelectorAll('#d-links-list .dynamic-input')).map(input => ({ 
+        url: input.value.trim(), 
+        data_adicionado: input.dataset.date || new Date().toISOString() 
+    })).filter(l => l.url);
+
+    // --- NOVO: 6. Assuntos Próxima Visita (Secção Amarela) ---
+    medicoData.assuntos_proxima_visita = Array.from(document.querySelectorAll('#d-assuntos-list .input-group')).map(row => ({
+        data: row.querySelector('.assunto-data').value,
+        texto: row.querySelector('.assunto-texto').value.trim()
+    })).filter(a => a.texto); // Guarda apenas se houver texto preenchido
+
+    try {
+        if (currentEditId && (currentEditType === 'medico' || currentEditType === 'medico_acao')) {
+            // MODO EDIÇÃO
+            const medicoRef = doc(db, "medicos", currentEditId);
+            const docBeforeSnap = await getDoc(medicoRef);
+            
+            await updateDoc(medicoRef, medicoData);
+            
+            // Sincroniza associações com Membros CLH
+            await syncAssociations(
+                currentEditId, 
+                docBeforeSnap.data().responsavel_clh_ids || [], 
+                medicoData.responsavel_clh_ids, 
+                'membrosclh', 
+                'medicos_responsabilidade_ids'
+            );
+
+            alert("Médico atualizado com sucesso!");
+            
+            if (currentEditType === 'medico_acao') {
+                switchToTab('acao');
+            } else {
+                window.location.href = `medico.html?id=${currentEditId}`;
+            }
+        } else {
+            // MODO CRIAÇÃO
+            medicoData.criado_em = new Date();
+            const docRef = await addDoc(collection(db, "medicos"), medicoData);
+            
+            await syncAssociations(
+                docRef.id, 
+                [], 
+                medicoData.responsavel_clh_ids, 
+                'membrosclh', 
+                'medicos_responsabilidade_ids'
+            );
+
+            alert("Médico criado com sucesso!");
+            e.target.reset();
+            // Limpa as listas dinâmicas manualmente após o reset
+            document.getElementById('d-moradas-list').innerHTML = '';
+            document.getElementById('d-posicoes-list').innerHTML = '';
+            document.getElementById('d-links-list').innerHTML = '';
+            document.getElementById('d-assuntos-list').innerHTML = '';
+            addMoradaInput(); // Adiciona uma linha de morada vazia por defeito
+        }
+    } catch (err) { 
+        console.error("Erro ao guardar médico:", err); 
+        alert("Ocorreu um erro ao guardar os dados do médico."); 
+    }
+});
 
             // Handlers simples para Atuações, Leads e Pedidos
             document.getElementById('form-atuacao')?.addEventListener('submit', async (e) => {
@@ -1685,6 +1830,7 @@ document.getElementById('btn-cancel-lead').addEventListener('click', () => isLea
     data: document.getElementById('atuacao-data').value, 
     quantidade: document.getElementById('atuacao-quantidade').value,
     observacoes: document.getElementById('atuacao-obs').value,
+     observacoes_medico: document.getElementById('atuacao-obs-medico').value,
     fechado: document.getElementById('atuacao-fechado').value === 'sim' // Adicione esta linha
 };
                 try {
